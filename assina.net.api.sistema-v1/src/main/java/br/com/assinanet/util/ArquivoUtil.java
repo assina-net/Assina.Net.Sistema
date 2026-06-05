@@ -3,7 +3,7 @@ package br.com.assinanet.util;
 import br.com.assinanet.entity.exception.NegocioException;
 
 import javax.swing.filechooser.FileSystemView;
-import javax.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.AssertTrue;
 import java.io.*;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;

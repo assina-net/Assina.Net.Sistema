@@ -8,11 +8,10 @@ import br.com.assinanet.entity.enums.StatusEnum;
 import br.com.assinanet.response.base.ResponseComCombos;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
 import org.springframework.beans.BeanUtils;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 @Getter

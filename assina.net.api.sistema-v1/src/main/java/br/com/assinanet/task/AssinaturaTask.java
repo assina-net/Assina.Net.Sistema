@@ -30,7 +30,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;

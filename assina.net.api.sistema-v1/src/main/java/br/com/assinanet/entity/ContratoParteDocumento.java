@@ -8,12 +8,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
 import org.springframework.beans.BeanUtils;
 import rufus.lzstring4java.LZString;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
@@ -32,23 +31,19 @@ public class ContratoParteDocumento {
     @Id
     @GeneratedValue
     @Column(columnDefinition = "uniqueidentifier")
-    @Type(type = "uuid-char")
     private UUID id;
 
     @OneToOne
     @JoinColumn(name = "idContratoPartePapel")
-    @Type(type = "uuid-char")
     private ContratoPartePapel contratoPartePapel;
 
     @OneToOne
     @JoinColumn(name = "idUsuario")
-    @Type(type = "uuid-char")
     private Usuario usuario;
 
     @NotNull
     @OneToOne
     @JoinColumn(name = "idContratoDocumento")
-    @Type(type = "uuid-char")
     private ContratoDocumento documento;
 
     @Basic(fetch = FetchType.LAZY)

@@ -6,10 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,7 +27,6 @@ public class Cliente {
     @GeneratedValue(strategy=GenerationType.AUTO)
     @Column(columnDefinition = "uniqueidentifier")
     //@Column(columnDefinition = "BINARY(16)")
-    @Type(type = "uuid-char")
     private UUID id;
 
     @NotNull

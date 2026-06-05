@@ -6,7 +6,7 @@ import br.com.assinanet.Sms.SmsConteudo;
 import br.com.assinanet.service.ContratoService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.io.IOException;
 
 public class MigraDocumento {

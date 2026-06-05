@@ -12,12 +12,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
 import org.springframework.beans.BeanUtils;
 import rufus.lzstring4java.LZString;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,10 +36,7 @@ public class ContratoDocumento {
     @Id
     @GeneratedValue
     @Column(columnDefinition = "uniqueidentifier")
-    @Type(type = "uuid-char")
     private UUID id;
-
-    @Type(type = "uuid-char")
     private UUID idDiretorio;
 
 

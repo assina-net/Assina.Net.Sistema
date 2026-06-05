@@ -7,9 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.UUID;
 
 /**
@@ -24,7 +23,6 @@ public class SistemaTipoAtributo {
     @Id
     @GeneratedValue
     @Column(columnDefinition = "uniqueidentifier")
-    @Type(type = "uuid-char")
     @Getter
     @Setter
     private UUID id;

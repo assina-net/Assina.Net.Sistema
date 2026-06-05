@@ -10,17 +10,17 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.11</version>
+        <version>4.0.6</version>
         <relativePath/>
     </parent>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <java.version>17</java.version>
-        <jjwt.version>0.9.1</jjwt.version>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <java.version>25</java.version>
+        <jjwt.version>0.12.6</jjwt.version>
         <lombok.version>1.18.40</lombok.version>
         <jasper.version>6.18.1</jasper.version>
     </properties>
@@ -58,7 +58,7 @@
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
-            <version>12.4.1.jre11</version>
+            <version>13.2.0.jre11</version>
 
             <!--            <version>9.5.0.jre17-preview</version>-->
         </dependency>
@@ -90,12 +90,29 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-data-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt</artifactId>
+            <artifactId>jjwt-api</artifactId>
             <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -130,12 +147,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
-            <version>2.2.6.RELEASE</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.thymeleaf/thymeleaf-spring5 -->
         <dependency>
             <groupId>org.thymeleaf</groupId>
-            <artifactId>thymeleaf-spring5</artifactId>
+            <artifactId>thymeleaf-spring6</artifactId>
             <version>3.1.5.RELEASE</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk16 -->
@@ -299,18 +315,11 @@
                 <configuration>
                     <executable>true</executable>
                 </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <!-- *** RESOURCE PLUGIN *** -->
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.3.1</version>
                 <configuration>
                     <nonFilteredFileExtensions>
                         <nonFilteredFileExtension>ttf</nonFilteredFileExtension>
@@ -322,7 +331,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.4.1</version>
                 <configuration>
                     <filesets>
                         <fileset>
@@ -379,11 +388,18 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
+                <version>3.14.1</version>
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
                     <release>${maven.compiler.target}</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>
@@ -398,8 +414,8 @@
                     <region>brazilsouth</region>
                     <runtime>
                         <os>linux</os>
-                        <javaVersion>java11</javaVersion>
-                        <webContainer>java11</webContainer>
+                        <javaVersion>java25</javaVersion>
+                        <webContainer>java25</webContainer>
                     </runtime>
                     <appSettings>
                         <property>
@@ -412,7 +428,7 @@
                         </property>
                         <property>
                             <name>jwt.secret</name>
-                            <value>From$To</value>
+                            <value>${env.JWT_SECRET}</value>
                         </property>
                         <property>
                             <name>spring.datasource.driverClassName</name>
@@ -430,7 +446,7 @@
                         </property>
                         <property>
                             <name>spring.datasource.password</name>
-                            <value>Ass1n@Net2020</value>
+                            <value>${env.DB_PASSWORD}</value>
                         </property>
                         <property>
                             <name>spring.jpa.properties.hibernate.dialect</name>

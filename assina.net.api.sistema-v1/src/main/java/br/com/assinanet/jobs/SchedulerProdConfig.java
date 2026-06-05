@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 /**
  * @author Samuel Oliveira - samuk.exe@hotmail.com

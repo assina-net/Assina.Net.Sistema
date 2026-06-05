@@ -6,8 +6,8 @@ import br.com.assinanet.entity.enums.TipoAssinaturaEnum;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import java.util.Date;
 import java.util.UUID;
 

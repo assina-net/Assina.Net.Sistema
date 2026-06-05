@@ -3,8 +3,8 @@ package br.com.assinanet.models;
 import br.com.assinanet.entity.enums.TipoPessoaEnum;
 import lombok.Data;
 
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import java.util.UUID;
 
 @Data

@@ -15,7 +15,7 @@ import br.com.assinanet.util.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.mail.MessagingException;
+import jakarta.mail.MessagingException;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;

@@ -5,9 +5,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.hibernate.Hibernate;
-import org.hibernate.annotations.Type;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -25,7 +24,6 @@ public class PaisIdiomas {
     @Id
     @GeneratedValue
     @Column(columnDefinition = "uniqueidentifier")
-    @Type(type = "uuid-char")
     private UUID id;
 
     @ManyToOne

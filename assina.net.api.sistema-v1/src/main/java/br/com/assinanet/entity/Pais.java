@@ -4,9 +4,9 @@ package br.com.assinanet.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.hibernate.Hibernate;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.Nationalized;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +27,6 @@ public class Pais {
     @Id
     @GeneratedValue
     @Column(columnDefinition = "uniqueidentifier")
-    @Type(type = "uuid-char")
     private UUID id;
 
     @Getter
@@ -64,7 +63,7 @@ public class Pais {
 
     @Getter
     @Setter
-    @Type(type="org.hibernate.type.StringNVarcharType")
+    @Nationalized
     private String bandriaEmoji;
 
     @Getter

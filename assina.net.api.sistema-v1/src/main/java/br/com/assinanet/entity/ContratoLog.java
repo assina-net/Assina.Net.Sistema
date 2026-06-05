@@ -4,11 +4,10 @@ import br.com.assinanet.models.CarimboTempoModel;
 import br.com.assinanet.request.assinador.AssinadorContratoLogRequest;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
-import org.hibernate.annotations.Type;
 import org.springframework.beans.BeanUtils;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.UUID;
 
@@ -26,7 +25,6 @@ public class ContratoLog {
     @Id
     @GeneratedValue
     @Column(columnDefinition = "uniqueidentifier")
-    @Type(type = "uuid-char")
     private UUID id;
 
     @NotNull

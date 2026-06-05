@@ -1,15 +1,14 @@
 package br.com.assinanet.security.controller;
 
-import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
-public class RequestErrorController implements ErrorController {
+public class RequestErrorController {
 
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request) {

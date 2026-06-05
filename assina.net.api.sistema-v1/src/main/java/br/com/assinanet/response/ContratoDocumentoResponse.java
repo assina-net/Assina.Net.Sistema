@@ -7,7 +7,6 @@ import br.com.assinanet.entity.enums.StatusDocumentoEnum;
 import br.com.assinanet.entity.enums.StatusEnum;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
 import org.springframework.beans.BeanUtils;
 
 import java.util.*;

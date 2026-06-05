@@ -8,15 +8,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.BeanIds;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
@@ -25,8 +25,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+@EnableMethodSecurity(prePostEnabled = true)
+public class WebSecurityConfig {
 
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final JwtUserDetailsService userDetailsService;
@@ -37,15 +37,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         this.userDetailsService = userDetailsService;
     }
 
-    @Autowired
-    public void configureAuthentication(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
-        authenticationManagerBuilder.userDetailsService(this.userDetailsService).passwordEncoder(passwordEncoder());
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(this.userDetailsService);
+        authenticationProvider.setPasswordEncoder(passwordEncoder());
+        return authenticationProvider;
     }
 
-    @Bean(BeanIds.AUTHENTICATION_MANAGER)
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
     @Bean
@@ -58,18 +59,19 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new JwtAuthenticationTokenFilter();
     }
 
-    @Override
-    protected void configure(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.csrf().disable()
-                .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .authorizeRequests()
-                .antMatchers(HttpMethod.POST, "/api/v1/integracao/**").permitAll()
-                .antMatchers(HttpMethod.GET, "/api/v1/integracao/status/**").permitAll()
-                .antMatchers(HttpMethod.GET, "/api/v1/validar/**").permitAll()
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity
+                .csrf(csrf -> csrf.disable())
+                .exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(HttpMethod.POST, "/api/v1/integracao/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/integracao/status/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/validar/**").permitAll()
 
                 // .antMatchers(HttpMethod.POST, "/api/v1/assinador/**").permitAll()
-                .antMatchers(
+                .requestMatchers(
                         HttpMethod.GET,
                         "/",
                         "/resources/**",
@@ -91,20 +93,22 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/**/*.otf",
                         "/**/*.properties"
                 ).permitAll()
-                .antMatchers("/api/v1/auth/**").permitAll()
-                .antMatchers(HttpMethod.POST,"/api/v1/lost/**").permitAll()
-                .antMatchers(HttpMethod.GET,"/api/v1/recuperarsenha/**").permitAll()
-                .antMatchers(HttpMethod.POST,"/api/v1/validarTokenAlterSenha/**").permitAll()
-                .antMatchers("/api/v1/assinar/validarChaveAcesso/**").permitAll()
-                .antMatchers("/api/v1/gerarTokenIntegracao/**").permitAll()
-                .antMatchers(HttpMethod.POST,"/api/v1/registro/**").permitAll()
-                .antMatchers(HttpMethod.GET,"/api/v1/registro/cliente/**").permitAll()
-                .antMatchers(HttpMethod.GET,"/api/v1/registro/usuario/**").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST,"/api/v1/lost/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/recuperarsenha/**").permitAll()
+                .requestMatchers(HttpMethod.POST,"/api/v1/validarTokenAlterSenha/**").permitAll()
+                .requestMatchers("/api/v1/assinar/validarChaveAcesso/**").permitAll()
+                .requestMatchers("/api/v1/gerarTokenIntegracao/**").permitAll()
+                .requestMatchers(HttpMethod.POST,"/api/v1/registro/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/registro/cliente/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/registro/usuario/**").permitAll()
 
                 //.antMatchers("/api/v1/usuario/findById/**").permitAll()
-                .anyRequest().authenticated();
+                .anyRequest().authenticated());
+        httpSecurity.authenticationProvider(authenticationProvider());
         httpSecurity.addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
-        httpSecurity.headers().cacheControl();
+        httpSecurity.headers(headers -> headers.cacheControl(cacheControl -> {}));
+        return httpSecurity.build();
     }
 }
 
