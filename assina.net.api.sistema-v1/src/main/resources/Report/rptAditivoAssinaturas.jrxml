@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.12.2.final using JasperReports Library version 6.12.2-75c5e90a222ab406e416cbf590a5397028a52de3  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rptAditivoAssinaturas" pageWidth="595" pageHeight="842" columnWidth="565" leftMargin="20" rightMargin="10" topMargin="10" bottomMargin="10" uuid="23bdc99f-176d-4e76-acea-321108b3aacb">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="dsDuplicata"/>
+	<property name="com.jaspersoft.studio.report.description" value=""/>
+	<parameter name="SUB_REPORT_ASSINATURAS" class="net.sf.jasperreports.engine.JasperReport" isForPrompting="false">
+		<defaultValueExpression><![CDATA["rptAssinaturas.jasper"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[]]>
+	</queryString>
+	<field name="duplicataDataVencimento" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataDataVencimento]]></fieldDescription>
+	</field>
+	<field name="cedenteCidade" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteCidade]]></fieldDescription>
+	</field>
+	<field name="sacadoCNPJ" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoCNPJ]]></fieldDescription>
+	</field>
+	<field name="sacadoCEP" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoCEP]]></fieldDescription>
+	</field>
+	<field name="cedenteNome" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteNome]]></fieldDescription>
+	</field>
+	<field name="sacadoBairro" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoBairro]]></fieldDescription>
+	</field>
+	<field name="cedenteTelefone" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteTelefone]]></fieldDescription>
+	</field>
+	<field name="sacadoInscricaoEstadual" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoInscricaoEstadual]]></fieldDescription>
+	</field>
+	<field name="cedenteCNPJ" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteCNPJ]]></fieldDescription>
+	</field>
+	<field name="duplicataOrdem" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataOrdem]]></fieldDescription>
+	</field>
+	<field name="duplicataPracaPagamento" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataPracaPagamento]]></fieldDescription>
+	</field>
+	<field name="sacadoUF" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoUF]]></fieldDescription>
+	</field>
+	<field name="duplicataDataEmissao" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataDataEmissao]]></fieldDescription>
+	</field>
+	<field name="sacadoNome" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoNome]]></fieldDescription>
+	</field>
+	<field name="faturaNumero" class="java.lang.String">
+		<fieldDescription><![CDATA[faturaNumero]]></fieldDescription>
+	</field>
+	<field name="class" class="java.lang.Class">
+		<fieldDescription><![CDATA[class]]></fieldDescription>
+	</field>
+	<field name="cedenteInscricaoEstadual" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteInscricaoEstadual]]></fieldDescription>
+	</field>
+	<field name="duplicataValor" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataValor]]></fieldDescription>
+	</field>
+	<field name="cedenteBairro" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteBairro]]></fieldDescription>
+	</field>
+	<field name="sacadoCidade" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoCidade]]></fieldDescription>
+	</field>
+	<field name="sacadoEndereco" class="java.lang.String">
+		<fieldDescription><![CDATA[sacadoEndereco]]></fieldDescription>
+	</field>
+	<field name="duplicataTipo" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataTipo]]></fieldDescription>
+	</field>
+	<field name="cedenteCEP" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteCEP]]></fieldDescription>
+	</field>
+	<field name="duplicataValorDouble" class="java.lang.Double">
+		<fieldDescription><![CDATA[duplicataValorDouble]]></fieldDescription>
+	</field>
+	<field name="duplicataCondicoesEspeciais" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataCondicoesEspeciais]]></fieldDescription>
+	</field>
+	<field name="cedenteEndereco" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteEndereco]]></fieldDescription>
+	</field>
+	<field name="cedenteUF" class="java.lang.String">
+		<fieldDescription><![CDATA[cedenteUF]]></fieldDescription>
+	</field>
+	<field name="duplicataValorExtenso" class="java.lang.String">
+		<fieldDescription><![CDATA[duplicataValorExtenso]]></fieldDescription>
+	</field>
+	<field name="assinaturaEmissor" class="java.lang.String"/>
+	<field name="dataAssinaturaEmissor" class="java.lang.String"/>
+	<field name="tipoAssinaturaEmissor" class="java.lang.String"/>
+	<field name="chaveAssinaturaEmissor" class="java.lang.String"/>
+	<field name="assinaturas" class="java.util.List">
+		<property name="net.sf.jasperreports.json.field.expression" value="assinaturas"/>
+		<fieldDescription><![CDATA[assinaturas]]></fieldDescription>
+	</field>
+	<detail>
+		<band height="90" splitType="Prevent">
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.FreeLayout"/>
+			<subreport>
+				<reportElement x="0" y="0" width="565" height="90" uuid="233c453e-bbd6-4d7b-9583-4c7fdba20c26">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<dataSourceExpression><![CDATA[new net.sf.jasperreports.engine.data.JRBeanCollectionDataSource($F{assinaturas})]]></dataSourceExpression>
+				<subreportExpression><![CDATA[$P{SUB_REPORT_ASSINATURAS}]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+</jasperReport>

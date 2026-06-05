@@ -1,0 +1,2 @@
+- sistema-base.api.ts : Descomentar a URL do Servidor que deseja fazer o Deploy
+- application.properties : Descomentar a spring.datasource.url do localhost

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+
+<div align="rigth" style="color:#696969;">
+    <div>
+        Olá, <span th:text="${parte}"></span><br>
+        <br><br>Esse é um lembrete de que a assinatura da operação <span th:text="${assunto}"></span>, solicitada por  <span th:text="${empresa}"></span>, continua na plataforma Assina.net.
+
+
+        <br><br>Clique no link abaixo para acessar o portal de assinaturas para torná-lo válido agora mesmo!"
+        <br><br><br>
+        <div align="center">
+            <div style="width: 329px;background-color: mediumseagreen;color: white;height: 44px;border-radius: 10px;display:table">
+                <a style="display: table-cell;vertical-align: middle;text-decoration: none;color: white;"
+                   th:href="@{${acessoURL}}">Visualize e assine seus documentos aqui!</a></div>
+        </div>
+    </div>
+
+    <br><br>Este é um serviço de assinatura com proteção legal e validade jurídica que <span
+        th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.
+
+    <br><br>Atenciosamente
+
+    <br><br> Equipe <strong>Assina</strong><span style="color:#008000;">.net</span>
+    <br><br><br><br>
+    <div style="width:100%; border-top: 1px solid mediumseagreen;"></div>
+    <div align="center">
+        <span style="font-size:24px;"><strong>Assina</strong><span style="color:#008000;">.net</span></span><br />
+        <span style="color:#696969;"><span style="font-size:11px;">Assina.net Gest&atilde;o e Assinatura de Documentos</span></span></p>
+    </div>
+</div>
+
+</div>
+</body>
+</html>

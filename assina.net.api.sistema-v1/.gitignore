@@ -1,0 +1,10 @@
+# Default ignored files
+/logs/
+/target/
+/.idea/
+.idea/*
+/webui/dist/
+/webui/node_modules/
+/webui/.vscode/
+/src/main/resources/public/
+/assinanet.iml
