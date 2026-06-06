@@ -69,6 +69,11 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/integracao/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/integracao/status/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/validar/**").permitAll()
+                .requestMatchers(
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+                ).permitAll()
 
                 // .antMatchers(HttpMethod.POST, "/api/v1/assinador/**").permitAll()
                 .requestMatchers(

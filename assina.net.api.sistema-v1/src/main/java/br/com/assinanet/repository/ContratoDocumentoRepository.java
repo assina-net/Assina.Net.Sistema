@@ -133,9 +133,10 @@ public interface ContratoDocumentoRepository extends JpaRepository<ContratoDocum
 
 
 
-    @Query("from ContratoDocumento" +
-            " where  (  documentoOriginal is not null and documentoOriginalCompactado is null )" +
-            " or (  documentoAssinado is not null and documentoAssinadoCompactado is null ) ")
+    @Query(value = "select * from contrato_documento" +
+            " where (documento_original is not null and documento_original_compactado is null)" +
+            " or (documento_assinado is not null and documento_assinado_compactado is null)",
+            nativeQuery = true)
     List<ContratoDocumento> verificaDocumentosNaoCompactados( Pageable pageable);
 
     @Query("select distinct cont " +

@@ -23,6 +23,8 @@
         <jjwt.version>0.12.6</jjwt.version>
         <lombok.version>1.18.40</lombok.version>
         <jasper.version>6.18.1</jasper.version>
+        <bouncycastle.version>1.73</bouncycastle.version>
+        <springdoc.version>3.0.3</springdoc.version>
     </properties>
     <developers>
         <developer>
@@ -82,6 +84,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-rest</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -154,22 +161,21 @@
             <artifactId>thymeleaf-spring6</artifactId>
             <version>3.1.5.RELEASE</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk16 -->
+        <!-- Bouncy Castle -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk16</artifactId>
-            <version>1.46</version>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcmail-jdk16</artifactId>
-            <version>1.46</version>
-            <optional>true</optional>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bctsp-jdk16</artifactId>
-            <version>1.46</version>
+            <artifactId>bcmail-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
         </dependency>
         <!-- Jasper - IReport -->
         <dependency>
@@ -222,17 +228,13 @@
             <artifactId>gson</artifactId>
             <version>2.8.9</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.15.2</version>
-
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
-            <version>2.15.2</version>
         </dependency>
         <!-- CSV -->
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-csv -->
@@ -450,7 +452,7 @@
                         </property>
                         <property>
                             <name>spring.jpa.properties.hibernate.dialect</name>
-                            <value>org.hibernate.dialect.SQLServer2012Dialect</value>
+                                <value>org.hibernate.dialect.SQLServerDialect</value>
                         </property>
                         <property>
                             <name>spring.jpa.properties.hibernate.enable_lazy_load_no_trans</name>

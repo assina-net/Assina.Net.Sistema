@@ -136,8 +136,8 @@ public interface ContratoParteDocumentoRepository extends JpaRepository<Contrato
             " where cont.statusContrato not in ( 'CANCELADO', 'RECUSADO', 'ASSINADO' ) " +
             "  and cont.status = 'ATIVO'" +
             "  and tiat.tipoAtributo = 'PRAZO_CANCELAMENTO_CONTRATO_AUTOMATICO'" +
-            "  and siat.valorAtributo != null" +
-            "  and  datediff(day, cont.dataSolicitacaoAssinatura,:hoje) >  siat.valorAtributo ")
+            "  and siat.valorAtributo is not null" +
+            "  and  datediff(day, cont.dataSolicitacaoAssinatura,:hoje) > cast(siat.valorAtributo as integer) ")
     List<Contrato> verificaContratosNaoAssinadosParaCancelamento(Date hoje);
 
 

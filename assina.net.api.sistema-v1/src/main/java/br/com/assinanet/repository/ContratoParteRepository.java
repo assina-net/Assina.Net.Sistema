@@ -90,10 +90,10 @@ public interface ContratoParteRepository extends JpaRepository<ContratoParte, UU
             "  and cont.statusContrato not in ( 'INATIVO',  'CANCELADO', 'RECUSADO',  'NAOLIBERADOASSINTAURA' ) " +
             "  and cont.custodiante in ( :clientes ) " +
             "  and (  siat_cancelamento.valorAtributo is null or " +
-            "         datediff(day,  cont.dataSolicitacaoAssinatura, :hoje) <= siat_cancelamento.valorAtributo " +
+            "         datediff(day,  cont.dataSolicitacaoAssinatura, :hoje) <= cast(siat_cancelamento.valorAtributo as integer) " +
             "      ) " +
             "  and (  siat_parar.valorAtributo is null or " +
-            "         datediff(day,  cont.dataSolicitacaoAssinatura, :hoje) <= siat_parar.valorAtributo " +
+            "         datediff(day,  cont.dataSolicitacaoAssinatura, :hoje) <= cast(siat_parar.valorAtributo as integer) " +
             "      ) " +
             "  and datediff(day,  cont.dataSolicitacaoAssinatura, :hoje) > 1" +
             "  and ( copa.validadeChaveAcesso is null or copa.validadeChaveAcesso > CURRENT_TIMESTAMP ) "

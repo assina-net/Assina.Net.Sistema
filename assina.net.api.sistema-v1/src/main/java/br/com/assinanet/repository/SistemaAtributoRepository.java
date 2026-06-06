@@ -57,7 +57,7 @@ public interface SistemaAtributoRepository extends JpaRepository<SistemaAtributo
     @Query(" select new br.com.assinanet.response.SistemaAtributo.SistemaAtributoCliente(sita, siat )  " +
             " from SistemaTipoAtributo sita " +
             "  left join SistemaAtributo siat on sita = siat.tipoAtributo and  siat.cliente.id = :idCliente and siat.status = 'ATIVO' " +
-            " WHERE  sita.tipoAtributo.id =  :idTipoAtributo ")
+            " WHERE  sita.id =  :idTipoAtributo ")
     SistemaAtributoCliente findByIdManutencao(UUID idTipoAtributo, UUID idCliente);
 
 
@@ -66,7 +66,7 @@ public interface SistemaAtributoRepository extends JpaRepository<SistemaAtributo
             "  join fetch siat.cliente " +
             " WHERE siat.status = 'ATIVO' " +
             " and siat.tipoAtributo = :sistemaTipoAtributo  " +
-            " and siat.valorAtributo like '%' + :valorAtributo + '%' ")
+            " and siat.valorAtributo like concat('%', :valorAtributo, '%') ")
     List<SistemaAtributo> retornaClientesComParametro(SistemaTipoAtributo sistemaTipoAtributo, String valorAtributo);
 
 
@@ -74,11 +74,11 @@ public interface SistemaAtributoRepository extends JpaRepository<SistemaAtributo
             " from Cliente clie" +
             " inner join SistemaAtributo siat_Dias with siat_Dias.cliente = clie " +
             "                                       and siat_Dias.tipoAtributo = :atributoDiasAlerta " +
-            "                                       and siat_Dias.valorAtributo like '%' + :valorAtributoDias + '%' " +
+            "                                       and siat_Dias.valorAtributo like concat('%', :valorAtributoDias, '%') " +
             "                                       and siat_Dias.status = 'ATIVO' " +
             " inner join SistemaAtributo siat_Horarios with siat_Horarios.cliente = clie " +
             "                                           and siat_Horarios.tipoAtributo = :atributoHorariosAlerta  " +
-            "                                           and siat_Horarios.valorAtributo like '%' + :valorAtributoHorarios + '%' " +
+            "                                           and siat_Horarios.valorAtributo like concat('%', :valorAtributoHorarios, '%') " +
             "                                           and siat_Horarios.status = 'ATIVO' "
     )
     List<Cliente> retornaClientesComParametrosDeAlerta(SistemaTipoAtributo atributoDiasAlerta, String valorAtributoDias,

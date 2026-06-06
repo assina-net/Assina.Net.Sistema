@@ -35,15 +35,15 @@ public interface ContratoRepository extends JpaRepository<Contrato, UUID> {
             "LEFT JOIN UsuarioCliente uscl on clie = uscl.cliente AND :usuario = uscl.usuario  " +
             " WHERE cont.custodiante = :custodiante " +
             "AND cont.status = 'ATIVO' " +
-            "AND ( uscl = null or uscl.status = 'ATIVO' or part.cpfCnpj <> clie_pess.cpfCnpj  ) " +
-            "AND ( :identificador is null or cont.identificador like '%'+ :identificador+'%' ) " +
-            "AND ( :assunto is null or cont.assunto like '%'+:assunto+'%' )   " +
+            "AND ( uscl is null or uscl.status = 'ATIVO' or part.cpfCnpj <> clie_pess.cpfCnpj  ) " +
+            "AND ( :identificador is null or cont.identificador like concat('%', :identificador, '%') ) " +
+            "AND ( :assunto is null or cont.assunto like concat('%', :assunto, '%') )   " +
             "AND ( :statusContrato is null or cont.statusContrato = :statusContrato  )   " +
             "AND ( ( :parteNomeRazaosocial ='' ) or" +
-            "      ( part.nomeRazaoSocial like '%'+:parteNomeRazaosocial+'%' or" +
-            "        part.cpfCnpj like '%'+:parteNomeRazaosocial+'%' or" +
-            "        paco.nomeRazaoSocial like '%'+:parteNomeRazaosocial+'%' or" +
-            "        paco.cpfCnpj like '%'+:parteNomeRazaosocial+'%'   " +
+            "      ( part.nomeRazaoSocial like concat('%', :parteNomeRazaosocial, '%') or" +
+            "        part.cpfCnpj like concat('%', :parteNomeRazaosocial, '%') or" +
+            "        paco.nomeRazaoSocial like concat('%', :parteNomeRazaosocial, '%') or" +
+            "        paco.cpfCnpj like concat('%', :parteNomeRazaosocial, '%')   " +
             "      )  " +
             "    ) " +
             "AND ( ( :parteCpfCnpj ='' ) or" +
@@ -51,9 +51,9 @@ public interface ContratoRepository extends JpaRepository<Contrato, UUID> {
             "        paco.cpfCnpj = :parteCpfCnpj" +
             "      )  " +
             "    ) " +
-            "AND ((:bloqueiaObservador = false or :papelObservador = null )" + //Bonatte - 2023-12-04 - Observador null quebrava
-            "    or ( ( :papelObservador not in  part_papel.papel or  part_papel.papel = null ) and " +
-            "         ( :papelObservador not in  paco_papel.papel or paco_papel.papel = null ) " +
+            "AND ((:bloqueiaObservador = false or :papelObservador is null )" + //Bonatte - 2023-12-04 - Observador null quebrava
+            "    or ( ( part_papel.papel <> :papelObservador or  part_papel.papel is null ) and " +
+            "         ( paco_papel.papel <> :papelObservador or paco_papel.papel is null ) " +
             "       )) " +
             "AND cont.statusContrato in (:listStatusContrato) "
     )
