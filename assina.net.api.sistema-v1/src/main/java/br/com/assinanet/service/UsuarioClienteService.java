@@ -64,6 +64,10 @@ public class UsuarioClienteService {
             usuarioCliente.setCliente(cliente);
             usuarioCliente.setStatus(StatusEnum.ATIVO);
             usuarioClienteRepository.save(usuarioCliente);
+        } else {
+            usuarioClienteVerifica.setPerfil(usuarioCliente.getPerfil());
+            usuarioClienteVerifica.setStatus(usuarioCliente.getStatus());
+            usuarioClienteRepository.save(usuarioClienteVerifica);
         }
        // usuarioCliente.setPerfil(usuario.getPerfil());
         //usuarioClienteRepository.save(usuarioCliente);
