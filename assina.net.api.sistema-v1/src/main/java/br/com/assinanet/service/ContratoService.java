@@ -135,6 +135,10 @@ public class ContratoService {
 
 
     public ContratoRequest Salva(ContratoRequest contratoRequest) throws IOException, NegocioException, NoSuchAlgorithmException {
+        return Salva(contratoRequest, false);
+    }
+
+    public ContratoRequest Salva(ContratoRequest contratoRequest, boolean validarLiberacao) throws IOException, NegocioException, NoSuchAlgorithmException {
 
         if (!CommonsUtil.semValor(contratoRequest.getContrato().getCustodiante().getId()) &&
                 (CommonsUtil.semValor(contratoRequest.getContrato().getCustodiante().getPessoa()) ||
@@ -196,7 +200,7 @@ public class ContratoService {
             contratoParteRepository.excluiDocumentosPapelExcluidos(partesAtivas);
         }
 
-        contrato = Salva(contrato);
+        contrato = Salva(contrato, validarLiberacao);
 
 
         //cria os contatos
@@ -270,11 +274,20 @@ public class ContratoService {
     }
 
     public Contrato Salva(Contrato contrato) {
+        return Salva(contrato, false);
+    }
+
+    public Contrato Salva(Contrato contrato, boolean validarLiberacao) {
         if (contrato.getLiberadoAssinatura() == null) {
             contrato.setLiberadoAssinatura(false);
         }
 
-        ValidaLiberacaoAssinatura(contrato);
+        if (validarLiberacao) {
+            ValidaLiberacaoAssinatura(contrato);
+        } else {
+            contrato.setValidado(false);
+            contrato.setValidacaoMensagem(null);
+        }
 
         contrato = atualizaDocumentoEmStorage(contrato);
 
@@ -1649,7 +1662,16 @@ public class ContratoService {
     public ContratoRequest LiberarAssinatura(ContratoRequest contratoRequest) throws Exception {
 
         //Salva sempres para acertar base de dados
-        contratoRequest = Salva(contratoRequest);
+        try {
+            contratoRequest = Salva(contratoRequest, true);
+        } catch (RuntimeException e) {
+            if (isErroConfiguracaoStorage(e)) {
+                contratoRequest.getContrato().setValidado(false);
+                contratoRequest.getContrato().setValidacaoMensagem(montaMensagemConfiguracaoStorage(e));
+                return contratoRequest;
+            }
+            throw e;
+        }
 
         if (!contratoRequest.getContrato().getValidado()) {
             return contratoRequest;
@@ -1657,10 +1679,42 @@ public class ContratoService {
 
         Contrato contrato = findById(contratoRequest.getContrato().getId());
 
-        ExecutaLiberacaoAssinatura(contrato);
+        try {
+            ExecutaLiberacaoAssinatura(contrato);
+        } catch (RuntimeException e) {
+            if (isErroConfiguracaoStorage(e)) {
+                contratoRequest.getContrato().setValidado(false);
+                contratoRequest.getContrato().setValidacaoMensagem(montaMensagemConfiguracaoStorage(e));
+                return contratoRequest;
+            }
+            throw e;
+        }
 
         return contratoRequest;
 
+    }
+
+    private boolean isErroConfiguracaoStorage(Throwable throwable) {
+        Throwable atual = throwable;
+        while (atual != null) {
+            String mensagem = atual.getMessage();
+            if (mensagem != null) {
+                String mensagemUpper = mensagem.toUpperCase();
+                if (mensagemUpper.contains("INVALID CONNECTION STRING")
+                        || mensagemUpper.contains("AZURE_STORAGE_CONNECTION_STRING")
+                        || mensagemUpper.contains("CONFIGURACAO OBRIGATORIA NAO INFORMADA")
+                        || mensagemUpper.contains("CONFIGURAÇÃO OBRIGATÓRIA NÃO INFORMADA")) {
+                    return true;
+                }
+            }
+            atual = atual.getCause();
+        }
+        return false;
+    }
+
+    private String montaMensagemConfiguracaoStorage(Throwable throwable) {
+        return "Não foi possível liberar para assinatura porque o armazenamento dos arquivos não está configurado corretamente. "
+                + "Verifique a configuração AZURE_STORAGE_CONNECTION_STRING ou configure o armazenamento local para este ambiente.";
     }
 
     private void ExecutaLiberacaoAssinatura(Contrato contrato) {
@@ -1868,18 +1922,14 @@ public class ContratoService {
             if (!CommonsUtil.booleanValue( contratoDocumento.getTipoDocumento().getAssina()))
                 continue;
             byte[] documentoOriginal = contratoDocumento.getDocumentoOriginal();
-            if (documentoOriginal == null) {
-                ContratoDocumentoVisualizaResponse contratoDocumentoVisualizaResponse = null;
-                try {
-                    contratoDocumentoVisualizaResponse = contratoDocumentoService.getArquivoEmDiretorio(Optional.of(contratoDocumento), contratoDocumento.getDocumentoOriginalSHA256(), false, true);
-                    if (contratoDocumentoVisualizaResponse == null) {
-                        contratoDocumentoVisualizaResponse = new ContratoDocumentoVisualizaResponse(Optional.of(contratoDocumento), Optional.of(contratoDocumento).get().getDocumentoOriginal(), false);
-                    }
-                    documentoOriginal = contratoDocumentoVisualizaResponse.getDocumento();
-                } catch (NoSuchAlgorithmException | NegocioException e) {
-                    contratoDocumentoVisualizaResponse = contratoDocumentoRepository.getDocumentoOriginal(contratoDocumento.getId());
-                    throw new RuntimeException(e);
-                }
+            if (CommonsUtil.semValor(documentoOriginal)) {
+                documentoOriginal = getDocumentoOriginalParaValidacao(contratoDocumento);
+            }
+            if (CommonsUtil.semValor(documentoOriginal)) {
+                String exception = "Não foi possível localizar o arquivo original do documento " + contratoDocumento.getNomeDocumento() +
+                        ". Salve novamente o arquivo ou verifique se ele está disponível no armazenamento configurado.";
+                contrato.setValidacaoMensagem(exception);
+                return;
             }
             //valida se é um pdf valido
             PDDocument document;
@@ -1987,6 +2037,53 @@ public class ContratoService {
 
         contrato.setValidado(true);
         contrato.setValidacaoMensagem(null);
+    }
+
+    private byte[] getDocumentoOriginalParaValidacao(ContratoDocumento contratoDocumento) {
+        byte[] documentoOriginal = null;
+
+        try {
+            ContratoDocumentoVisualizaResponse response = contratoDocumentoService.getArquivoEmDiretorio(
+                    Optional.of(contratoDocumento), contratoDocumento.getDocumentoOriginalSHA256(), false, true);
+            documentoOriginal = getDocumentoBytes(response);
+        } catch (NoSuchAlgorithmException | NegocioException | RuntimeException e) {
+            documentoOriginal = getDocumentoOriginalBase(contratoDocumento);
+        }
+
+        if (CommonsUtil.semValor(documentoOriginal)) {
+            documentoOriginal = getDocumentoOriginalBase(contratoDocumento);
+        }
+
+        return documentoOriginal;
+    }
+
+    private byte[] getDocumentoOriginalBase(ContratoDocumento contratoDocumento) {
+        if (CommonsUtil.semValor(contratoDocumento) || CommonsUtil.semValor(contratoDocumento.getId())) {
+            return null;
+        }
+
+        ContratoDocumentoVisualizaResponse response = contratoDocumentoRepository.getDocumentoOriginal(contratoDocumento.getId());
+        return getDocumentoBytes(response);
+    }
+
+    private byte[] getDocumentoBytes(ContratoDocumentoVisualizaResponse response) {
+        if (response == null) {
+            return null;
+        }
+
+        if (!CommonsUtil.semValor(response.getDocumentoBytes())) {
+            return response.getDocumentoBytes();
+        }
+
+        try {
+            if (!CommonsUtil.semValor(response.getDocumentoPDF())) {
+                return response.getDocumento();
+            }
+        } catch (RuntimeException e) {
+            return null;
+        }
+
+        return null;
     }
 
     private Boolean CriaMapContratoPartePapel(Map<UUID, Boolean> mapContratoPartePapel, Map<UUID, List<ContratoParte>> mapContratoParte,
@@ -3229,3 +3326,4 @@ public class ContratoService {
 
     //endregion
 }
+

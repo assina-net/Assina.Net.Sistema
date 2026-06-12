@@ -172,7 +172,6 @@ public class ContratoDocumentoService {
     public Arquivo persisteArquivoEmDiretorio(ContratoDocumento documento, TipoArquivoEnum tipoArquivo) throws NoSuchAlgorithmException, NegocioException {
 
         String diretorioArquivo = retornaCaminhoArquivos(documento.getContrato().getCustodiante());
-        Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
 
         Arquivo arquivo = new Arquivo();
         arquivo.setCliente(documento.getContrato().getCustodiante());
@@ -195,8 +194,10 @@ public class ContratoDocumentoService {
         String hashArquivo;
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hashedByetArray = new byte[0];
-        byte[] hashedByteFile = new byte[0];
+        byte[] hashedByteFile = null;
         String hashedEncoded = null;
+        boolean documentoOriginal = false;
+        boolean documentoAssinado = false;
 
         if (TipoArquivoEnum.ORIGNAL.equals(tipoArquivo) && documento.getDocumentoOriginal() != null) {
             hashedByteFile = documento.getDocumentoOriginal();
@@ -206,9 +207,7 @@ public class ContratoDocumentoService {
             messageDigest.update(hashedByteFile);
             hashedEncoded = String.format("%032x", new BigInteger(1, messageDigest.digest())) + ".bin";
 
-            documento.setDocumentoOriginalSHA256(hashedEncoded);
-            documento.setDocumentoOriginal(null);
-            salvarDocumento = true;
+            documentoOriginal = true;
 
         } else if (TipoArquivoEnum.ASSINADO.equals(tipoArquivo) && documento.getDocumentoAssinado() != null) {
             hashedByteFile = documento.getDocumentoAssinado();
@@ -218,20 +217,28 @@ public class ContratoDocumentoService {
             messageDigest.update(hashedByteFile);
             hashedEncoded = String.format("%032x", new BigInteger(1, messageDigest.digest())) + ".bin";
 
-            documento.setDocumentoAssinadoSHA256(hashedEncoded);
-            documento.setDocumentoAssinado(null);
-            salvarDocumento = true;
+            documentoAssinado = true;
 
         }
         try {
             if (hashedByteFile != null) {
                 Path fullPath = Paths.get(path, hashedEncoded).toFile().toPath();
+                Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
                 storage.uploadFile(fullPath.toString(), hashedByteFile);
+
+                if (documentoOriginal) {
+                    documento.setDocumentoOriginalSHA256(hashedEncoded);
+                    documento.setDocumentoOriginal(null);
+                } else if (documentoAssinado) {
+                    documento.setDocumentoAssinadoSHA256(hashedEncoded);
+                    documento.setDocumentoAssinado(null);
+                }
+                salvarDocumento = true;
             }
         }
         catch (Exception e) {
             salvarDocumento = false;
-            System.out.println("Erro ao gravar no storage. Documento: "+documento.getDocumentoAssinadoSHA256()+" nao foi salvo!\n"+e.getMessage());
+            System.out.println("Erro ao gravar no storage. Documento: "+documento.getNomeDocumento()+" nao foi salvo!\n"+e.getMessage());
 
         }
         if (salvarDocumento) {
@@ -253,7 +260,6 @@ public class ContratoDocumentoService {
     public Arquivo persisteArquivoEmDiretorioMigra(ContratoDocumento documento, TipoArquivoEnum tipoArquivo) throws NoSuchAlgorithmException, NegocioException {
 
         String diretorioArquivo = retornaCaminhoArquivos(documento.getContrato().getCustodiante());
-        Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
 
         Arquivo arquivo = new Arquivo();
         arquivo.setCliente(documento.getContrato().getCustodiante());
@@ -276,8 +282,10 @@ public class ContratoDocumentoService {
         String hashArquivo;
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hashedByetArray = new byte[0];
-        byte[] hashedByteFile = new byte[0];
+        byte[] hashedByteFile = null;
         String hashedEncoded = null;
+        boolean documentoOriginal = false;
+        boolean documentoAssinado = false;
 
         if (TipoArquivoEnum.ORIGNAL.equals(tipoArquivo) && documento.getDocumentoOriginal() != null) {
             hashedByteFile = documento.getDocumentoOriginal();
@@ -287,9 +295,7 @@ public class ContratoDocumentoService {
             messageDigest.update(hashedByteFile);
             hashedEncoded = String.format("%032x", new BigInteger(1, messageDigest.digest())) + ".bin";
 
-            documento.setDocumentoOriginalSHA256(hashedEncoded);
-            documento.setDocumentoOriginal(null);
-            salvarDocumento = true;
+            documentoOriginal = true;
 
         } else if (TipoArquivoEnum.ASSINADO.equals(tipoArquivo) && documento.getDocumentoAssinado() != null) {
             hashedByteFile = documento.getDocumentoAssinado();
@@ -299,20 +305,28 @@ public class ContratoDocumentoService {
             messageDigest.update(hashedByteFile);
             hashedEncoded = String.format("%032x", new BigInteger(1, messageDigest.digest())) + ".bin";
 
-            documento.setDocumentoAssinadoSHA256(hashedEncoded);
-            documento.setDocumentoAssinado(null);
-            salvarDocumento = true;
+            documentoAssinado = true;
 
         }
         try {
             if (hashedByteFile != null) {
                 Path fullPath = Paths.get(path, hashedEncoded).toFile().toPath();
+                Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
                 storage.uploadFile(fullPath.toString(), hashedByteFile);
+
+                if (documentoOriginal) {
+                    documento.setDocumentoOriginalSHA256(hashedEncoded);
+                    documento.setDocumentoOriginal(null);
+                } else if (documentoAssinado) {
+                    documento.setDocumentoAssinadoSHA256(hashedEncoded);
+                    documento.setDocumentoAssinado(null);
+                }
+                salvarDocumento = true;
             }
         }
         catch (Exception e) {
             salvarDocumento = false;
-            System.out.println("Erro ao gravar no storage. Documento: "+documento.getDocumentoAssinadoSHA256()+" nao foi salvo!\n"+e.getMessage());
+            System.out.println("Erro ao gravar no storage. Documento: "+documento.getNomeDocumento()+" nao foi salvo!\n"+e.getMessage());
 
         }
         if (salvarDocumento) {

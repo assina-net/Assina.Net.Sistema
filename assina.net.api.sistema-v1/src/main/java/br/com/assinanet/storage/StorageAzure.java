@@ -34,6 +34,8 @@ public class StorageAzure implements Storage {
     }
 
     public byte[] downloadFile(String storageFilePath) {
+        System.out.println("[AZURE_STORAGE_DOWNLOAD] Container: " + containerName + " | Blob: " + storageFilePath);
+
         BlobContainerClient containerClient = new BlobContainerClientBuilder()
                 .connectionString(connectionString)
                 .containerName(containerName)
@@ -62,3 +64,4 @@ public class StorageAzure implements Storage {
         return value == null || value.trim().isEmpty() ? defaultValue : value;
     }
 }
+

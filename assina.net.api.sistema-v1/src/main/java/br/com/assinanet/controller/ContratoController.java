@@ -148,13 +148,18 @@ public class ContratoController {
     @PostMapping(value = "documentoPdf")
     public ResponseEntity<Response<ContratoDocumentoVisualizaResponse>> getDocumentoPdf(@RequestBody ContratoDocumentoRequest documento) {
         Response<ContratoDocumentoVisualizaResponse> response = new Response<>();
-        ContratoDocumentoVisualizaResponse documentoPDF;
-        if (StatusDocumentoEnum.ASSINADO.equals(documento.getStatusDocumento())  && CommonsUtil.booleanValue(documento.getTipoDocumento().getAssina())) {
-            documentoPDF = contratoService.getDocumentoAssiandoPDF(documento);
-        } else {
-            documentoPDF = contratoService.getDocumentoPDF(documento);
+        try {
+            ContratoDocumentoVisualizaResponse documentoPDF;
+            if (StatusDocumentoEnum.ASSINADO.equals(documento.getStatusDocumento())  && CommonsUtil.booleanValue(documento.getTipoDocumento().getAssina())) {
+                documentoPDF = contratoService.getDocumentoAssiandoPDF(documento);
+            } else {
+                documentoPDF = contratoService.getDocumentoPDF(documento);
+            }
+            response.setData(documentoPDF);
+        } catch (Exception e) {
+            System.out.println("[CONTRATO_DOCUMENTO_PDF] Falha ao visualizar documento: " + e.getMessage());
+            response.getErrors().add("Não foi possível visualizar este documento agora. Verifique se o arquivo está disponível no armazenamento.");
         }
-        response.setData(documentoPDF);
         return ResponseEntity.ok(response);
     }
 
@@ -286,5 +291,6 @@ public class ContratoController {
     }
 
 }
+
 
 
