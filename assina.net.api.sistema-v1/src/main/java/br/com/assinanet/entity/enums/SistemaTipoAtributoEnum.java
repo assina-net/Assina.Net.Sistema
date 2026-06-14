@@ -86,6 +86,8 @@ public enum SistemaTipoAtributoEnum {
     TIPO_STORAGE(SistemaTipoAtributoCategoriaEnum.PARAMETRO_TIPO_STORAGE),
 
     DIRETORIO_STORAGE_AZURE(SistemaTipoAtributoCategoriaEnum.PARAMETRO_DIRETORIO_STORAGE_AZURE),
+    AZURE_STORAGE_CONNECTION_STRING(SistemaTipoAtributoCategoriaEnum.SISTEMA),
+    AZURE_STORAGE_CONTAINER_NAME(SistemaTipoAtributoCategoriaEnum.SISTEMA),
 
     DIRETORIO_ARQUIVOS(SistemaTipoAtributoCategoriaEnum.PARAMETROS_DIRETORIOS);
 

@@ -33,6 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
@@ -217,12 +219,14 @@ public class ContratoService {
             try {
                 contratoDocumentoService.persisteArquivoEmDiretorio(documento, TipoArquivoEnum.ORIGNAL);
             } catch (NegocioException | NoSuchAlgorithmException e) {
+                throw new IllegalStateException("Não foi possível preparar o documento para armazenamento.", e);
             }
         }
         if (!CommonsUtil.semValor(documento.getDocumentoAssinado())){ // && !documento.getDocumentoAssinadoSHA256().endsWith(".bin")) {
             try {
                 contratoDocumentoService.persisteArquivoEmDiretorio(documento, TipoArquivoEnum.ASSINADO);
             } catch (NegocioException | NoSuchAlgorithmException e) {
+                throw new IllegalStateException("Não foi possível preparar o documento assinado para armazenamento.", e);
             }
         }
         return documento;
@@ -241,6 +245,7 @@ public class ContratoService {
                 try {
                     contratoDocumentoService.persisteArquivoEmDiretorio(documento, TipoArquivoEnum.ORIGNAL);
                 } catch (NegocioException | NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Não foi possível preparar o documento para armazenamento.", e);
                 }
             }
 
@@ -248,6 +253,7 @@ public class ContratoService {
                 try {
                     contratoDocumentoService.persisteArquivoEmDiretorio(documento, TipoArquivoEnum.ASSINADO);
                 } catch (NegocioException | NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Não foi possível preparar o documento assinado para armazenamento.", e);
                 }
             }
 
@@ -426,23 +432,45 @@ public class ContratoService {
         List<StatusContratoEnum> listStatusContrato = new ArrayList<>(Arrays.asList(StatusContratoEnum.LIBERADOASSINATURA, StatusContratoEnum.PARCIALMENTEASSINADO));
         Boolean observadorBloqueadocumentosPendentes = sistemaAtributoService.getBoolean(SistemaTipoAtributoEnum.BLOQUEIA_OBSERVADOR_DOCUMENTOS_PENDENTES, filtro.getContrato().getCustodiante());
         Papel papelObesrvador = papelService.findByIdentificacaoAndCliente(PapelEnum.OBSERVADOR.getDescricao(), null);
+        Usuario usuario = retornaUsuarioPersistido(filtro.getUsuario());
+        String parteNomeRazaoSocial = retornaFiltroTextoParte(filtro, true);
+        String parteCpfCnpj = retornaFiltroTextoParte(filtro, false);
 
-        Page<Contrato> data = contratoRepository.PesquisaContratoParaAssinatura(filtro.getUsuario(), filtro.getContrato().getCustodiante(), filtro.getContrato().getIdentificador(),
+        Page<Contrato> data = contratoRepository.PesquisaContratoParaAssinatura(usuario, filtro.getContrato().getCustodiante(), filtro.getContrato().getIdentificador(),
                 filtro.getContrato().getAssunto(), filtro.getContrato().getStatusContrato(),
-                (filtro.getContrato().getPartes() == null ? null : filtro.getContrato().getPartes().get(0).getNomeRazaoSocial()),
-                (filtro.getContrato().getPartes() == null ? null : filtro.getContrato().getPartes().get(0).getCpfCnpj()),
+                parteNomeRazaoSocial, parteCpfCnpj,
                 listStatusContrato, observadorBloqueadocumentosPendentes, papelObesrvador, pageable);
 
-        return ProcessaListaContratoAssinaturas(pageable, data);
+        Page<ContratoListaAssinaModel> resultado = ProcessaListaContratoAssinaturas(pageable, data);
+        System.out.printf(
+                "[ASSINATURAS_PENDENTES] Usuario: %s | Cliente: %s | Identificador: %s | Parte: %s | CPF/CNPJ: %s | Consultados: %d | Retornados: %d%n",
+                usuario.getLogin(),
+                filtro.getContrato().getCustodiante().getId(),
+                filtro.getContrato().getIdentificador(),
+                parteNomeRazaoSocial,
+                parteCpfCnpj,
+                data.getTotalElements(),
+                resultado.getContent().size());
+        return resultado;
 
+    }
+
+    private String retornaFiltroTextoParte(ContratoFiltroRequest filtro, boolean nomeRazaoSocial) {
+        if (filtro.getContrato().getPartes() == null || filtro.getContrato().getPartes().isEmpty()) {
+            return "";
+        }
+        ContratoParte parte = filtro.getContrato().getPartes().get(0);
+        String valor = nomeRazaoSocial ? parte.getNomeRazaoSocial() : parte.getCpfCnpj();
+        return valor == null ? "" : valor;
     }
 
     public Page<ContratoListaAssinaModel> findAllVigentes(ContratoFiltroRequest filtro, Pageable pageable) {
 
         List<StatusContratoEnum> listStatusContrato = new ArrayList<>(Arrays.asList(StatusContratoEnum.ASSINADO, StatusContratoEnum.GERANDOASSINATURAS));
         Boolean observadorBloqueadocumentosPendentes = false; //ja vigente
+        Usuario usuario = retornaUsuarioPersistido(filtro.getUsuario());
 
-        Page<Contrato> data = contratoRepository.PesquisaContratoParaAssinatura(filtro.getUsuario(), filtro.getContrato().getCustodiante(), filtro.getContrato().getIdentificador(),
+        Page<Contrato> data = contratoRepository.PesquisaContratoParaAssinatura(usuario, filtro.getContrato().getCustodiante(), filtro.getContrato().getIdentificador(),
                 filtro.getContrato().getAssunto(), filtro.getContrato().getStatusContrato(),
                 (filtro.getContrato().getPartes() == null ? null : filtro.getContrato().getPartes().get(0).getNomeRazaoSocial()),
                 (filtro.getContrato().getPartes() == null ? null : filtro.getContrato().getPartes().get(0).getCpfCnpj()),
@@ -457,9 +485,10 @@ public class ContratoService {
         List<StatusContratoEnum> listStatusContrato = new ArrayList<>(Arrays.asList(StatusContratoEnum.RECUSADO));
         Boolean observadorBloqueadocumentosPendentes = sistemaAtributoService.getBoolean(SistemaTipoAtributoEnum.BLOQUEIA_OBSERVADOR_DOCUMENTOS_PENDENTES, filtro.getContrato().getCustodiante());
         Papel papelObesrvador = papelService.findByIdentificacaoAndCliente(PapelEnum.OBSERVADOR.getDescricao(), null);
+        Usuario usuario = retornaUsuarioPersistido(filtro.getUsuario());
 
 
-        Page<Contrato> data = contratoRepository.PesquisaContratoParaAssinatura(filtro.getUsuario(), filtro.getContrato().getCustodiante(), filtro.getContrato().getIdentificador(),
+        Page<Contrato> data = contratoRepository.PesquisaContratoParaAssinatura(usuario, filtro.getContrato().getCustodiante(), filtro.getContrato().getIdentificador(),
                 filtro.getContrato().getAssunto(), filtro.getContrato().getStatusContrato(),
                 (filtro.getContrato().getPartes() == null ? null : filtro.getContrato().getPartes().get(0).getNomeRazaoSocial()),
                 (filtro.getContrato().getPartes() == null ? null : filtro.getContrato().getPartes().get(0).getCpfCnpj()),
@@ -467,6 +496,29 @@ public class ContratoService {
 
         return ProcessaListaContratoAssinaturas(pageable, data);
 
+    }
+
+    private Usuario retornaUsuarioPersistido(Usuario usuarioFiltro) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            Usuario usuarioAutenticado = usuarioService.findByLogin(authentication.getName());
+            if (usuarioAutenticado != null) {
+                return usuarioAutenticado;
+            }
+        }
+        if (usuarioFiltro == null) {
+            throw new IllegalArgumentException("Usuario obrigatorio para consultar contratos.");
+        }
+        if (usuarioFiltro.getId() != null) {
+            return usuarioService.findById(usuarioFiltro.getId());
+        }
+        if (!CommonsUtil.semValor(usuarioFiltro.getLogin())) {
+            Usuario usuario = usuarioService.findByLogin(usuarioFiltro.getLogin());
+            if (usuario != null) {
+                return usuario;
+            }
+        }
+        throw new IllegalArgumentException("Usuario da consulta nao foi encontrado.");
     }
 
     private Page<ContratoListaAssinaModel> ProcessaListaContratoAssinaturas(Pageable pageable, Page<Contrato> data) {
@@ -1702,6 +1754,7 @@ public class ContratoService {
                 String mensagemUpper = mensagem.toUpperCase();
                 if (mensagemUpper.contains("INVALID CONNECTION STRING")
                         || mensagemUpper.contains("AZURE_STORAGE_CONNECTION_STRING")
+                        || mensagemUpper.contains("AZURE_STORAGE_CONTAINER_NAME")
                         || mensagemUpper.contains("CONFIGURACAO OBRIGATORIA NAO INFORMADA")
                         || mensagemUpper.contains("CONFIGURAÇÃO OBRIGATÓRIA NÃO INFORMADA")) {
                     return true;
@@ -1714,7 +1767,7 @@ public class ContratoService {
 
     private String montaMensagemConfiguracaoStorage(Throwable throwable) {
         return "Não foi possível liberar para assinatura porque o armazenamento dos arquivos não está configurado corretamente. "
-                + "Verifique a configuração AZURE_STORAGE_CONNECTION_STRING ou configure o armazenamento local para este ambiente.";
+                + "Verifique as configurações AZURE_STORAGE_CONNECTION_STRING e AZURE_STORAGE_CONTAINER_NAME.";
     }
 
     private void ExecutaLiberacaoAssinatura(Contrato contrato) {
@@ -1784,6 +1837,58 @@ public class ContratoService {
                 });
             }
         });
+
+        // A assinatura é da pessoa. Quando o mesmo CPF participa em mais de um papel,
+        // todas as ocorrências liberadas devem refletir o mesmo estado.
+        Set<String> cpfsLiberados = lstContratoPartesFisicasSemRequisistos.stream()
+                .map(ContratoParte::getCpfCnpj)
+                .filter(cpfCnpj -> !CommonsUtil.semValor(cpfCnpj))
+                .collect(Collectors.toSet());
+
+        List<ContratoParte> ocorrenciasLiberadas = new ArrayList<>();
+        contrato.getPartes().forEach(parte -> {
+            if (TipoPessoaEnum.FISICA.equals(parte.getTipoPessoa())
+                    && cpfsLiberados.contains(parte.getCpfCnpj())) {
+                ocorrenciasLiberadas.add(parte);
+            }
+            parte.getContatos().stream()
+                    .filter(contato -> TipoPessoaEnum.FISICA.equals(contato.getTipoPessoa()))
+                    .filter(contato -> cpfsLiberados.contains(contato.getCpfCnpj()))
+                    .forEach(ocorrenciasLiberadas::add);
+        });
+
+        Map<String, List<ContratoParte>> ocorrenciasPorCpf = ocorrenciasLiberadas.stream()
+                .collect(Collectors.groupingBy(ContratoParte::getCpfCnpj));
+        UUID idContratoLiberado = contrato.getId();
+
+        ocorrenciasPorCpf.forEach((cpfCnpj, ocorrencias) -> {
+            String tokenAssinatura = ocorrencias.stream()
+                    .map(ContratoParte::getTokenAssinatura)
+                    .filter(token -> !CommonsUtil.semValor(token))
+                    .findFirst()
+                    .orElseGet(() -> Util.GenerateCommonLangPassword(false, true));
+
+            String chaveAcesso = ocorrencias.stream()
+                    .filter(parte -> !CommonsUtil.semValor(parte.getChaveAcesso()))
+                    .filter(parte -> parte.getValidadeChaveAcesso() == null
+                            || !DateUtil2.isAfterDateMinutes(parte.getValidadeChaveAcesso(), DateUtil2.getDataHoraAgora()))
+                    .map(ContratoParte::getChaveAcesso)
+                    .findFirst()
+                    .orElseGet(() -> {
+                        String frase = idContratoLiberado + cpfCnpj + DataUtil.getCarimboTempo().getCarimboTempo();
+                        return Util.ToHex(Util.gerarHash(frase, "SHA-256"));
+                    });
+
+            ocorrencias.forEach(parte -> {
+                parte.setTokenAssinatura(tokenAssinatura);
+                parte.setChaveAcesso(chaveAcesso);
+                parte.setValidadeChaveAcesso(null);
+                parte.setStatusAssinatura(StatusAssinaturaEnum.NAOASSINADO);
+                parte.setLiberadoAssinatura(true);
+            });
+            usuarioService.desbloqueio(cpfCnpj);
+        });
+        contratoParteService.SaveAll(ocorrenciasLiberadas);
 
 
         Map<TipoEnvioMsgEnum, List<ContratoParte>> mapEnvio = mensagemService.montaListasEnvio(SistemaTipoAtributoEnum.ENVIAR_CONTRATO_LIBERADO_WHATSAPP,

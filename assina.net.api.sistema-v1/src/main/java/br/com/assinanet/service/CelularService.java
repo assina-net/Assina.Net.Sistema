@@ -171,7 +171,7 @@ public class CelularService {
 
         } catch (Exception e) {
             //Salva fila para mandar via jog
-            EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJson(contratoLogSucesso), GsonUtil.toJson(contratoLogErro),
+            EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJsonContratoLog(contratoLogSucesso), GsonUtil.toJsonContratoLog(contratoLogErro),
                     false, TipoEnvioMsgEnum.WHATSAPP, e.getMessage(), contratoLogSucesso.getDataLog());
             emailFilaService.save(emailFila);
 
@@ -224,7 +224,7 @@ public class CelularService {
 
         } catch (Exception e) {
             //Salva fila para mandar via jog
-            EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJson(contratoLogSucesso), GsonUtil.toJson(contratoLogErro),
+            EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJsonContratoLog(contratoLogSucesso), GsonUtil.toJsonContratoLog(contratoLogErro),
                     false, TipoEnvioMsgEnum.EMAIL, e.getMessage(), contratoLogSucesso.getDataLog());
             emailFilaService.save(emailFila);
 

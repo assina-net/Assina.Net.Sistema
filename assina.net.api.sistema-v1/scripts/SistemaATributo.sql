@@ -49,8 +49,8 @@ exec saTipoAtributo  'CAMPOS_UPPERCASE', null,null;
 exec saTipoAtributo  'ASSINAR_VIA_EMAIL', null,null;
 exec saTipoAtributo  'ASSINAR_VIA_CERTIFICADO', null,null;
 
-exec saTipoAtributo  'TERMO_DE_USO_SISTEMA', 'Termo de uso do sistema', 'PDF';
-exec saTipoAtributo  'TERMO_DE_PRIVACIDADE_SISTEMA', 'Termo de privacidade do sistema', 'PDF'
+exec saTipoAtributo  'TERMO_DE_USO_SISTEMA', 'Caminho do termo de uso do sistema no storage', 'TEXT_SIMPLE';
+exec saTipoAtributo  'TERMO_DE_PRIVACIDADE_SISTEMA', 'Caminho do termo de privacidade do sistema no storage', 'TEXT_SIMPLE'
 
 exec saTipoAtributo  'PRAZO_ENVIO_EMAILS_AUTOMATICO', 'Prazo para parar o envio automático de e-mail', 'INTEGER'
 

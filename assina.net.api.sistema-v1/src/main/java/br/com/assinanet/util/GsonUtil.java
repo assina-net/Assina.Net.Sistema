@@ -1,5 +1,8 @@
 package br.com.assinanet.util;
 
+import br.com.assinanet.entity.Contrato;
+import br.com.assinanet.entity.ContratoDocumento;
+import br.com.assinanet.entity.ContratoLog;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 
@@ -31,6 +34,34 @@ public class GsonUtil {
 
     public static String toJson(Object object) {
         return gson.toJson(object);
+    }
+
+    public static String toJsonContratoLog(ContratoLog contratoLog) {
+        if (contratoLog == null) {
+            return gson.toJson(null);
+        }
+
+        ContratoLog logSerializavel = new ContratoLog();
+        logSerializavel.setId(contratoLog.getId());
+        logSerializavel.setLog(contratoLog.getLog());
+        logSerializavel.setDataLog(contratoLog.getDataLog());
+        logSerializavel.setGmtLog(contratoLog.getGmtLog());
+        logSerializavel.setCarimboTempoLog(contratoLog.getCarimboTempoLog());
+        logSerializavel.setLogSistema(contratoLog.getLogSistema());
+
+        if (contratoLog.getContrato() != null) {
+            Contrato contrato = new Contrato();
+            contrato.setId(contratoLog.getContrato().getId());
+            logSerializavel.setContrato(contrato);
+        }
+
+        if (contratoLog.getContratoDocumento() != null) {
+            ContratoDocumento documento = new ContratoDocumento();
+            documento.setId(contratoLog.getContratoDocumento().getId());
+            logSerializavel.setContratoDocumento(documento);
+        }
+
+        return gson.toJson(logSerializavel);
     }
 
     public static <T> T fromJson(String json, Class<T> classOfT) {

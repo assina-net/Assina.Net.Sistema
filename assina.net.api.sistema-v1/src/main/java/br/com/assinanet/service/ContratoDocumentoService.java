@@ -109,6 +109,9 @@ public class ContratoDocumentoService {
 
             if (documentoSHA256 != null) {
                 Path fullPath = Paths.get(path, documentoSHA256).toFile().toPath();
+                System.out.println("[CONTRATO_DOCUMENTO_STORAGE] Documento: "
+                        + documento.get().getNomeDocumento()
+                        + " | Caminho: " + fullPath);
                 byte[] bytes = storage.downloadFile(fullPath.toString());
 
                 contratoDocumentoVisualizaResponse = new ContratoDocumentoVisualizaResponse(documento, bytes, originalBytes);
@@ -129,12 +132,29 @@ public class ContratoDocumentoService {
             case "LOCAL":
                 return StorageFactory.createStorage(TipoStorage.LOCAL);
             case "AZURE":
-                return StorageFactory.createStorage(TipoStorage.AZURE);
+                String connectionString = getAtributoClienteOuGlobal(
+                        SistemaTipoAtributoEnum.AZURE_STORAGE_CONNECTION_STRING,
+                        cliente
+                );
+                String containerName = getAtributoClienteOuGlobal(
+                        SistemaTipoAtributoEnum.AZURE_STORAGE_CONTAINER_NAME,
+                        cliente
+                );
+                return StorageFactory.createStorage(TipoStorage.AZURE, connectionString, containerName);
             case "AWS":
                 return StorageFactory.createStorage(TipoStorage.AWS);
         }
         return null;
     }
+
+    private String getAtributoClienteOuGlobal(SistemaTipoAtributoEnum tipoAtributo, Cliente cliente) {
+        String valor = sistemaAtributoService.getString(tipoAtributo, cliente);
+        if (CommonsUtil.semValor(valor)) {
+            valor = sistemaAtributoService.getString(tipoAtributo, null);
+        }
+        return valor;
+    }
+
     public String retornaCaminhoArquivos(Cliente cliente) {
         String tipoStorage = sistemaAtributoService.getString(SistemaTipoAtributoEnum.TIPO_STORAGE, cliente);
         if (CommonsUtil.semValor(tipoStorage)) {
@@ -220,26 +240,29 @@ public class ContratoDocumentoService {
             documentoAssinado = true;
 
         }
-        try {
-            if (hashedByteFile != null) {
-                Path fullPath = Paths.get(path, hashedEncoded).toFile().toPath();
-                Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
+        if (hashedByteFile != null) {
+            Path fullPath = Paths.get(path, hashedEncoded).toFile().toPath();
+            Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
+            try {
                 storage.uploadFile(fullPath.toString(), hashedByteFile);
-
-                if (documentoOriginal) {
-                    documento.setDocumentoOriginalSHA256(hashedEncoded);
-                    documento.setDocumentoOriginal(null);
-                } else if (documentoAssinado) {
-                    documento.setDocumentoAssinadoSHA256(hashedEncoded);
-                    documento.setDocumentoAssinado(null);
-                }
-                salvarDocumento = true;
+            } catch (RuntimeException e) {
+                System.out.println("[CONTRATO_DOCUMENTO_UPLOAD] Falha ao gravar documento: "
+                        + documento.getNomeDocumento() + " | Caminho: " + fullPath
+                        + " | Erro: " + e.getMessage());
+                throw new IllegalStateException(
+                        "Não foi possível salvar o documento no armazenamento. O contrato não foi salvo.",
+                        e
+                );
             }
-        }
-        catch (Exception e) {
-            salvarDocumento = false;
-            System.out.println("Erro ao gravar no storage. Documento: "+documento.getNomeDocumento()+" nao foi salvo!\n"+e.getMessage());
 
+            if (documentoOriginal) {
+                documento.setDocumentoOriginalSHA256(hashedEncoded);
+                documento.setDocumentoOriginal(null);
+            } else if (documentoAssinado) {
+                documento.setDocumentoAssinadoSHA256(hashedEncoded);
+                documento.setDocumentoAssinado(null);
+            }
+            salvarDocumento = true;
         }
         if (salvarDocumento) {
             if (!CommonsUtil.semValor(documento.getId())) {
@@ -308,26 +331,29 @@ public class ContratoDocumentoService {
             documentoAssinado = true;
 
         }
-        try {
-            if (hashedByteFile != null) {
-                Path fullPath = Paths.get(path, hashedEncoded).toFile().toPath();
-                Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
+        if (hashedByteFile != null) {
+            Path fullPath = Paths.get(path, hashedEncoded).toFile().toPath();
+            Storage storage = retornaStorageFactory(documento.getContrato().getCustodiante());
+            try {
                 storage.uploadFile(fullPath.toString(), hashedByteFile);
-
-                if (documentoOriginal) {
-                    documento.setDocumentoOriginalSHA256(hashedEncoded);
-                    documento.setDocumentoOriginal(null);
-                } else if (documentoAssinado) {
-                    documento.setDocumentoAssinadoSHA256(hashedEncoded);
-                    documento.setDocumentoAssinado(null);
-                }
-                salvarDocumento = true;
+            } catch (RuntimeException e) {
+                System.out.println("[CONTRATO_DOCUMENTO_UPLOAD] Falha ao migrar documento: "
+                        + documento.getNomeDocumento() + " | Caminho: " + fullPath
+                        + " | Erro: " + e.getMessage());
+                throw new IllegalStateException(
+                        "Não foi possível migrar o documento para o armazenamento.",
+                        e
+                );
             }
-        }
-        catch (Exception e) {
-            salvarDocumento = false;
-            System.out.println("Erro ao gravar no storage. Documento: "+documento.getNomeDocumento()+" nao foi salvo!\n"+e.getMessage());
 
+            if (documentoOriginal) {
+                documento.setDocumentoOriginalSHA256(hashedEncoded);
+                documento.setDocumentoOriginal(null);
+            } else if (documentoAssinado) {
+                documento.setDocumentoAssinadoSHA256(hashedEncoded);
+                documento.setDocumentoAssinado(null);
+            }
+            salvarDocumento = true;
         }
         if (salvarDocumento) {
             if (!CommonsUtil.semValor(documento.getId())) {

@@ -1,0 +1,669 @@
+/*
+ Bootstrap do cliente SISTEMA extraido da producao.
+ Gerado em: 2026-06-14T14:43:28.7605943Z
+
+ ATENCAO:
+ - Este arquivo contem configuracoes sensiveis copiadas da producao.
+ - Execute apenas na nova base vazia e mantenha o arquivo protegido.
+ - Os UUIDs originais sao preservados.
+*/
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    -- Sincroniza a constraint do enum com SistemaTipoAtributoEnum.
+    DECLARE @checkTipoAtributo sysname;
+
+    SELECT @checkTipoAtributo = cc.name
+      FROM sys.check_constraints cc
+     WHERE cc.parent_object_id = OBJECT_ID(N'dbo.sistema_tipo_atributo')
+       AND cc.definition LIKE N'%tipo_atributo%';
+
+    IF @checkTipoAtributo IS NOT NULL
+    BEGIN
+        DECLARE @dropCheckTipoAtributo nvarchar(max) =
+            N'ALTER TABLE dbo.sistema_tipo_atributo DROP CONSTRAINT '
+            + QUOTENAME(@checkTipoAtributo);
+        EXEC sys.sp_executesql @dropCheckTipoAtributo;
+    END;
+
+    ALTER TABLE dbo.sistema_tipo_atributo WITH CHECK
+        ADD CONSTRAINT CK_sistema_tipo_atributo_tipo_atributo
+        CHECK (tipo_atributo IN (
+            N'EMAIL_SENDER_HOST', N'EMAIL_SENDER_PORT', N'EMAIL_SENDER_USERNAME',
+            N'EMAIL_SENDER_PASSWORD', N'EMAIL_SENDER_AUTHENTICATE',
+            N'EMAIL_SENDER_TLS_ENABLE', N'EMAIL_SENDER_TLS_REQUIRED',
+            N'EMAIL_SENDER_SSL_ENABLE', N'EMAIL_SENDER_PROTOCOL',
+            N'EMAIL_NOVO_USUARIO', N'EMAIL_NOVO_USUARIO_CLIENTE_FISICA',
+            N'EMAIL_NOVO_USUARIO_CLIENTE_JURIDICA', N'EMAIL_NOVO_CLIENTE_FISICA',
+            N'EMAIL_NOVO_CLIENTE_JURIDICA', N'EMAIL_ESQUECEU_SENHA',
+            N'EMAIL_TOKEN_ASSINATURA', N'EMAIL_CONTRATO_ASSINADO',
+            N'EMAIL_CHAVE_ACESSO', N'EMAIL_RECUSA_ASSINATURA',
+            N'EMAIL_CHAVE_ACESSO_OBSERVADOR', N'EMAIL_CHAVE_ACESSO_BLOQUEIO',
+            N'EMAIL_CHAVE_ACESSO_PROBLEMA', N'WHATSAPP_URL_SERVICO',
+            N'WHATSAPP_TOKEN_SERVICO', N'WHATSAPP_TOKEN_ASSINATURA',
+            N'WHATSAPP_CHAVE_ACESSO', N'WHATSAPP_CONTRATO_ASSINADO',
+            N'WHATSAPP_RECUSA_ASSINATURA', N'WHATSAPP_CHAVE_ACESSO_OBSERVADOR',
+            N'CONSULTA_CONTRATO_MOSTRAR_PARTES', N'CHAVE_ACESSO_GEOLOCALIZACAO_IPSTACK',
+            N'CHAVE_ACESSO_API_COMTELE', N'QUANTIDADE_MAXIMA_PAGINA',
+            N'CAMPOS_UPPERCASE', N'ASSINAR_VIA_CERTIFICADO',
+            N'SOMENTE_INCLUIR_USUARIO_NO_CONTRATO', N'MOSTRAR_OBSERVADOR_NO_CONTRATO',
+            N'BLOQUEIA_OBSERVADOR_DOCUMENTOS_PENDENTES',
+            N'EXIBE_MENSAGEM_VALIDACAO_DE_DOCUMENTO',
+            N'PRAZO_CANCELAMENTO_CONTRATO_AUTOMATICO', N'ASSINAR_VIA_EMAIL',
+            N'ENVIAR_EMAIL_OBSERVADOR_SOMENTE_APOS_ASSINATURA',
+            N'ENVIAR_ARQUIVOS_NO_EMAIL_CONTRATO_ASSINADOS',
+            N'NAO_ENVIAR_ARQUIVO_ORIGINAL_NO_EMAIL_CONTRATO_ASSINADOS',
+            N'NAO_ENVIAR_ARQUIVO_ORIGINAL_NO_DOWNLOAD_CONTRATO_ASSINADOS',
+            N'ASSINAR_VIA_SMS', N'ASSINAR_VIA_WHATSAPP',
+            N'ENVIAR_CONTRATO_LIBERADO_WHATSAPP',
+            N'ENVIAR_CONTRATO_LIBERADO_OBSERVADOR_WHATSAPP',
+            N'ENVIAR_CONTRATO_ASSINADO_WHATSAPP', N'ENVIAR_CONTRATO_PENDENTE_WHATSAPP',
+            N'ENVIAR_CONTRATO_RECUSA_WHATSAPP', N'TELEFONE_WHATSAPP',
+            N'PRAZO_ENVIO_EMAILS_AUTOMATICO', N'DIAS_DA_SEMANA_PARA_ENVIO_DE_ALERTA',
+            N'HORARIOS_PARA_ENVIO_DE_ALERTA', N'URL_ACESSO_SITE',
+            N'TERMO_DE_USO_SISTEMA', N'TERMO_DE_PRIVACIDADE_SISTEMA',
+            N'TIPO_STORAGE', N'DIRETORIO_STORAGE_AZURE',
+            N'AZURE_STORAGE_CONNECTION_STRING', N'AZURE_STORAGE_CONTAINER_NAME',
+            N'DIRETORIO_ARQUIVOS'
+        ));
+
+    -- Remove indices unicos criados por relacionamentos @OneToOne antigos.
+    DECLARE @dropUniqueIndexes nvarchar(max) = N'';
+
+    SELECT @dropUniqueIndexes = @dropUniqueIndexes
+        + CASE
+            WHEN i.is_unique_constraint = 1 THEN
+                N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(i.object_id))
+                + N'.' + QUOTENAME(OBJECT_NAME(i.object_id))
+                + N' DROP CONSTRAINT ' + QUOTENAME(i.name) + N';'
+            ELSE
+                N'DROP INDEX ' + QUOTENAME(i.name)
+                + N' ON ' + QUOTENAME(OBJECT_SCHEMA_NAME(i.object_id))
+                + N'.' + QUOTENAME(OBJECT_NAME(i.object_id)) + N';'
+          END
+        + NCHAR(13) + NCHAR(10)
+      FROM sys.indexes i
+      JOIN sys.index_columns ic
+        ON ic.object_id = i.object_id
+       AND ic.index_id = i.index_id
+       AND ic.key_ordinal > 0
+      JOIN sys.columns c
+        ON c.object_id = ic.object_id
+       AND c.column_id = ic.column_id
+     WHERE i.is_unique = 1
+       AND i.is_primary_key = 0
+       AND (SELECT COUNT(*)
+              FROM sys.index_columns key_column
+             WHERE key_column.object_id = i.object_id
+               AND key_column.index_id = i.index_id
+               AND key_column.key_ordinal > 0) = 1
+       AND (
+            (OBJECT_NAME(i.object_id) = N'cliente' AND c.name = N'id_segmento')
+         OR (OBJECT_NAME(i.object_id) = N'papel_tipo_cliente' AND c.name = N'id_segmento')
+         OR (OBJECT_NAME(i.object_id) = N'tipo_documento_papel' AND c.name = N'id_papel')
+         OR (OBJECT_NAME(i.object_id) = N'tipo_documento_tipo_cliente' AND c.name = N'id_segmento')
+       );
+
+    IF @dropUniqueIndexes <> N''
+        EXEC sys.sp_executesql @dropUniqueIndexes;
+
+    -- Planos
+    IF NOT EXISTS (SELECT 1 FROM dbo.plano WHERE id = '61965A16-5665-4F07-93FF-0F479E288D40')
+        INSERT INTO dbo.plano (id, nome, periodo, quantidade_documentos, status) VALUES ('61965A16-5665-4F07-93FF-0F479E288D40', N'Plano Ilimitado', N'ILIMITADO', NULL, N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.plano WHERE id = 'C526767A-8789-4C55-9E44-6C9B7FC83B52')
+        INSERT INTO dbo.plano (id, nome, periodo, quantidade_documentos, status) VALUES ('C526767A-8789-4C55-9E44-6C9B7FC83B52', N'Plano Gratuito - 5 Assinaturas mensais', N'MES', 5, N'ATIVO');
+
+    -- Segmentos
+    IF NOT EXISTS (SELECT 1 FROM dbo.segmento WHERE id = '3AEEF56C-88B4-4E7C-B94A-4252EC053878')
+        INSERT INTO dbo.segmento (id, identificacao, nome, status) VALUES ('3AEEF56C-88B4-4E7C-B94A-4252EC053878', N'CONTRATOSIMPLES', N'Contrato Simples', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.segmento WHERE id = '20649B63-A664-414E-B62A-4390311FA671')
+        INSERT INTO dbo.segmento (id, identificacao, nome, status) VALUES ('20649B63-A664-414E-B62A-4390311FA671', N'CONTABILIDADE', N'Contabilidade', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.segmento WHERE id = 'B7598BC8-AABC-48C9-9760-4DB82379BD5F')
+        INSERT INTO dbo.segmento (id, identificacao, nome, status) VALUES ('B7598BC8-AABC-48C9-9760-4DB82379BD5F', N'CORRETORASEGUROS', N'Corretora Seguros', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.segmento WHERE id = 'ACC4F013-F6F9-485F-A8F4-B070B354A80C')
+        INSERT INTO dbo.segmento (id, identificacao, nome, status) VALUES ('ACC4F013-F6F9-485F-A8F4-B070B354A80C', N'SISTEMA', N'Sistema', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.segmento WHERE id = '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11')
+        INSERT INTO dbo.segmento (id, identificacao, nome, status) VALUES ('8B6A1AA1-D562-4345-8A1B-C7AE70F15F11', N'FIDC', N'FIDC', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.segmento WHERE id = 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97')
+        INSERT INTO dbo.segmento (id, identificacao, nome, status) VALUES ('D73E8106-6FB3-4294-B6C0-D54E8ABC5B97', N'FACTORING', N'Factoring', N'ATIVO');
+
+    -- Pessoas-base. O cliente ainda nao existe, portanto id_cliente inicia nulo.
+    IF NOT EXISTS (SELECT 1 FROM dbo.pessoa WHERE id = '6EDA5F67-FF26-4DE8-A21F-B819AE7B46AD')
+        INSERT INTO dbo.pessoa (id, cpf_cnpj, email, nome_razao_social, tipo_pessoa, id_cliente) VALUES ('6EDA5F67-FF26-4DE8-A21F-B819AE7B46AD', N'00000000000000', N'', N'SISTEMA', N'JURIDICA', NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.pessoa WHERE id = '5D3E18DA-74B7-4A6F-89D8-C908144E5DEE')
+        INSERT INTO dbo.pessoa (id, cpf_cnpj, email, nome_razao_social, tipo_pessoa, id_cliente) VALUES ('5D3E18DA-74B7-4A6F-89D8-C908144E5DEE', N'99999999999', N'admin@admin.com', N'ADMIN', N'FISICA', NULL);
+
+    -- Cliente SISTEMA
+    IF NOT EXISTS (SELECT 1 FROM dbo.cliente WHERE id = '57AB12B5-18D5-47A9-9206-E88192AF5F7E')
+        INSERT INTO dbo.cliente (id, data_fim_contrato, data_inicio_contrato, status, id_pessoa, nao_mostrar, id_segmento, indicacao, id_plano) VALUES ('57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, CONVERT(datetime2, '2020-07-08T11:15:55.8620000', 126), N'ATIVO', '6EDA5F67-FF26-4DE8-A21F-B819AE7B46AD', 1, 'ACC4F013-F6F9-485F-A8F4-B070B354A80C', NULL, '61965A16-5665-4F07-93FF-0F479E288D40');
+
+    UPDATE dbo.pessoa
+       SET id_cliente = '57AB12B5-18D5-47A9-9206-E88192AF5F7E'
+     WHERE id IN ('6EDA5F67-FF26-4DE8-A21F-B819AE7B46AD', '5D3E18DA-74B7-4A6F-89D8-C908144E5DEE')
+       AND (id_cliente IS NULL OR id_cliente <> '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+
+    -- Usuario ADMIN
+    IF NOT EXISTS (SELECT 1 FROM dbo.usuario WHERE id = 'B53CD91F-BD02-4031-BCEF-DCAC62A0421E')
+        INSERT INTO dbo.usuario (id, login, perfil, senha, status, id_pessoa, chave_privada, chave_publica, assinatura_pendente, chave_esqueceu_senha, validade_esqueceu_senha, token_assinatura, validade_token_assinatura, envio_email_tentativa_acesso, primeira_tentativa_acesso, quantidade_tentativa_acesso, id_contrato_parte_acesso) VALUES ('B53CD91F-BD02-4031-BCEF-DCAC62A0421E', N'ADMIN', N'ROLE_ADMIN', N'$2a$10$TilruMngsA3678wMZ7cSl.BdbxkiLV92gjYYYSNWxrGfdVDWGjYha', N'ATIVO', '5D3E18DA-74B7-4A6F-89D8-C908144E5DEE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL);
+
+    -- Vinculo ADMIN / SISTEMA
+    IF NOT EXISTS (SELECT 1 FROM dbo.usuario_cliente WHERE id = '6504C9A7-E4E8-439F-B516-184A0DF54FFA')
+        INSERT INTO dbo.usuario_cliente (id, perfil, status, id_cliente, id_usuario) VALUES ('6504C9A7-E4E8-439F-B516-184A0DF54FFA', N'ROLE_ADMIN', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'B53CD91F-BD02-4031-BCEF-DCAC62A0421E');
+
+    -- Tipos de endereco
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_endereco WHERE id = '4B0DD962-904F-47FB-8B70-A7371B1E8363')
+        INSERT INTO dbo.tipo_endereco (id, identificacao, nome, status, id_cliente) VALUES ('4B0DD962-904F-47FB-8B70-A7371B1E8363', N'COMERCIAL', N'Comercial', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_endereco WHERE id = 'F1816B62-3D3C-41C2-809B-BEECC36E4FA6')
+        INSERT INTO dbo.tipo_endereco (id, identificacao, nome, status, id_cliente) VALUES ('F1816B62-3D3C-41C2-809B-BEECC36E4FA6', N'CORRESPONDENCIA', N'Correspondência', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_endereco WHERE id = 'D72239BD-EE27-4C65-A252-FAC32BBDE8A1')
+        INSERT INTO dbo.tipo_endereco (id, identificacao, nome, status, id_cliente) VALUES ('D72239BD-EE27-4C65-A252-FAC32BBDE8A1', N'RESIDENCIAL', N'Residencial', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+
+    -- Tipos de telefone
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_telefone WHERE id = '4E85AFC7-46BC-4BC7-9461-1823BB2AC7F0')
+        INSERT INTO dbo.tipo_telefone (id, identificacao, nome, status, id_cliente) VALUES ('4E85AFC7-46BC-4BC7-9461-1823BB2AC7F0', N'CELULAR', N'Celular', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_telefone WHERE id = '4B0DD962-904F-47FB-8B70-A7371B1E8363')
+        INSERT INTO dbo.tipo_telefone (id, identificacao, nome, status, id_cliente) VALUES ('4B0DD962-904F-47FB-8B70-A7371B1E8363', N'COMERCIAL', N'Comercial', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_telefone WHERE id = 'F1816B62-3D3C-41C2-809B-BEECC36E4FA6')
+        INSERT INTO dbo.tipo_telefone (id, identificacao, nome, status, id_cliente) VALUES ('F1816B62-3D3C-41C2-809B-BEECC36E4FA6', N'RESIDENCIAL', N'Residencial', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+
+    -- Telefones das pessoas-base
+    IF NOT EXISTS (SELECT 1 FROM dbo.pessoa_telefone WHERE id = 'D7C9EE45-C2AB-466B-B578-BBAD1EE72A89')
+        INSERT INTO dbo.pessoa_telefone (id, complemento, data_atualizacao, data_cadastramento, numero, status, id_pais, id_pessoa, id_tipo_telefone) VALUES ('D7C9EE45-C2AB-466B-B578-BBAD1EE72A89', NULL, CONVERT(datetime2, '2023-12-02T14:21:15.0300000', 126), CONVERT(datetime2, '2023-12-02T14:21:14.7320000', 126), N'19997981209', N'INATIVO', NULL, '5D3E18DA-74B7-4A6F-89D8-C908144E5DEE', '4E85AFC7-46BC-4BC7-9461-1823BB2AC7F0');
+    IF NOT EXISTS (SELECT 1 FROM dbo.pessoa_telefone WHERE id = '6EC0D172-F0FB-49F4-8DD6-DAA8F2DFF94F')
+        INSERT INTO dbo.pessoa_telefone (id, complemento, data_atualizacao, data_cadastramento, numero, status, id_pais, id_pessoa, id_tipo_telefone) VALUES ('6EC0D172-F0FB-49F4-8DD6-DAA8F2DFF94F', NULL, CONVERT(datetime2, '2026-06-14T11:24:26.5220000', 126), CONVERT(datetime2, '2023-12-02T14:21:26.9530000', 126), N'19997981209', N'ATIVO', NULL, '5D3E18DA-74B7-4A6F-89D8-C908144E5DEE', '4E85AFC7-46BC-4BC7-9461-1823BB2AC7F0');
+
+    -- Papeis do SISTEMA
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '164C0B25-3D19-4AF4-8554-09D05DB6E9F0')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('164C0B25-3D19-4AF4-8554-09D05DB6E9F0', 1, N'ENDOSSATARIO', N'Endossatário', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '81BBB0FD-5839-460A-8942-0BBEA2165038')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('81BBB0FD-5839-460A-8942-0BBEA2165038', 1, N'SEGURADO', N'Segurado', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'A0AE94E8-835F-439B-9DBA-0DF95FD380E6')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('A0AE94E8-835F-439B-9DBA-0DF95FD380E6', 1, N'TESTEMUNHA', N'Testemunha', N'INATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '1DB8E7D5-B522-4BE9-9770-102D707AAA6E')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('1DB8E7D5-B522-4BE9-9770-102D707AAA6E', NULL, NULL, N'Credor', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '3B80E916-C6D0-421A-B001-232DD91F51F3')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('3B80E916-C6D0-421A-B001-232DD91F51F3', 1, N'PARTE', N'Parte', N'INATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '4AACE79F-1E43-491A-B64F-2A6E96C30D04')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('4AACE79F-1E43-491A-B64F-2A6E96C30D04', 1, N'GESTOR', N'GESTOR', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'CD609D0A-3B15-4610-AE2E-2F3253B53A14')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('CD609D0A-3B15-4610-AE2E-2F3253B53A14', 1, N'CESSIONARIO', N'Cessionário', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '5F813C44-CF7B-47CA-B8BB-6B7628089ABD')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('5F813C44-CF7B-47CA-B8BB-6B7628089ABD', 1, N'FOMENTADA', N'Fomentada', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '137983A2-983F-4EEA-BCFD-6E051FF7F64C')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('137983A2-983F-4EEA-BCFD-6E051FF7F64C', NULL, N'CONTRATADA', N'Contratada', N'INATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '25F25F83-4146-44B7-B95B-70FA11DD818F')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('25F25F83-4146-44B7-B95B-70FA11DD818F', NULL, N'CONTRATANTE', N'Contratante', N'INATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'D8AD7F9E-EE2A-4E7D-824A-72D96CC05BD3')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('D8AD7F9E-EE2A-4E7D-824A-72D96CC05BD3', NULL, NULL, N'TESTEMUNHA', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'DE9C381C-B553-4E78-8C85-732EB51AEE07')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('DE9C381C-B553-4E78-8C85-732EB51AEE07', NULL, NULL, N'Devedor', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'BDDE073B-3967-4AD2-AE6D-77DB93B5E249')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('BDDE073B-3967-4AD2-AE6D-77DB93B5E249', NULL, NULL, N'Terceira Garantidora', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '13F3F6A3-04E6-4378-A38E-82821222D1A2')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('13F3F6A3-04E6-4378-A38E-82821222D1A2', 1, N'FOMENTADORA', N'Fomentadora', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'B174F3C3-0719-4E2F-B7AA-83DD701C5076')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('B174F3C3-0719-4E2F-B7AA-83DD701C5076', 1, N'DEVEDORSOLIDARIO', N'Devedor Solidário', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'C8AABF91-0D39-43B7-AAD4-8685A0BD62A0')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('C8AABF91-0D39-43B7-AAD4-8685A0BD62A0', 1, N'CONSULTORA', N'CONSULTORA', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '14D57347-AFBA-4DE3-BB62-8CBE18A496C9')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('14D57347-AFBA-4DE3-BB62-8CBE18A496C9', 1, N'AVALISTA', N'Avalista', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '78CEE9A6-C132-44F3-AE8B-8D56AF491E5A')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('78CEE9A6-C132-44F3-AE8B-8D56AF491E5A', 1, NULL, N'CEDENTE', N'INATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '5EA55BDF-8062-40C8-B7F3-8E9025FCDF0F')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('5EA55BDF-8062-40C8-B7F3-8E9025FCDF0F', 1, N'EMITENTE', N'Emitente', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '685A5833-0CE3-40A9-94F4-91393CB369C4')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('685A5833-0CE3-40A9-94F4-91393CB369C4', 1, NULL, N'AVALISTA', N'INATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'EBFF2D5E-EAF4-41AE-9B31-AA977F47EB3D')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('EBFF2D5E-EAF4-41AE-9B31-AA977F47EB3D', 1, N'CEDENTE', N'Cedente', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '7D932008-CEBE-4390-A4C4-BC51582B89D0')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('7D932008-CEBE-4390-A4C4-BC51582B89D0', 1, N'CORRETORASEGUROS', N'Corretora de Seguros', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'C25FA6CD-7978-4ABB-B6EE-C861E2AA9FE5')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('C25FA6CD-7978-4ABB-B6EE-C861E2AA9FE5', 1, N'FUNDO', N'FUNDO', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = 'B11DCFD3-9F76-4B51-8695-F18903376017')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('B11DCFD3-9F76-4B51-8695-F18903376017', 0, N'OBSERVADOR', N'Observador', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '81EF77ED-2A49-40EE-B98D-F60E937FB64C')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('81EF77ED-2A49-40EE-B98D-F60E937FB64C', 1, NULL, N'FUNDO', N'INATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel WHERE id = '652D795E-A4E5-49EC-87BE-FA94B0EB0921')
+        INSERT INTO dbo.papel (id, assina, identificacao, nome, status, id_cliente) VALUES ('652D795E-A4E5-49EC-87BE-FA94B0EB0921', 1, N'ENDOSSANTE', N'Endossante', N'ATIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E');
+
+    -- Papeis por segmento
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '4EEFAD55-4300-4B96-82EA-02BD93F0A577')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('4EEFAD55-4300-4B96-82EA-02BD93F0A577', '14D57347-AFBA-4DE3-BB62-8CBE18A496C9', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '5390D735-768A-4F0F-B136-0945719E913A')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('5390D735-768A-4F0F-B136-0945719E913A', 'B11DCFD3-9F76-4B51-8695-F18903376017', 'ACC4F013-F6F9-485F-A8F4-B070B354A80C');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'BF219FE6-BE58-4795-977E-0A2251F5BDB5')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('BF219FE6-BE58-4795-977E-0A2251F5BDB5', 'BDDE073B-3967-4AD2-AE6D-77DB93B5E249', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '3AE5AA66-6A8C-4A7F-809C-0F32DE1BF333')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('3AE5AA66-6A8C-4A7F-809C-0F32DE1BF333', '685A5833-0CE3-40A9-94F4-91393CB369C4', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'DDB4F3A0-9983-4111-B0E1-1324DA9B9F94')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('DDB4F3A0-9983-4111-B0E1-1324DA9B9F94', 'C8AABF91-0D39-43B7-AAD4-8685A0BD62A0', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'E27944AD-66CC-4B45-AAC8-15841F095DBB')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('E27944AD-66CC-4B45-AAC8-15841F095DBB', '1DB8E7D5-B522-4BE9-9770-102D707AAA6E', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '59C9CCA8-C24B-4F66-B9C2-1E52A0A2124B')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('59C9CCA8-C24B-4F66-B9C2-1E52A0A2124B', 'CD609D0A-3B15-4610-AE2E-2F3253B53A14', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '42709438-730A-43A1-8AFA-2049F32AB45D')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('42709438-730A-43A1-8AFA-2049F32AB45D', '4AACE79F-1E43-491A-B64F-2A6E96C30D04', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '27BC4E8E-D216-485A-BDB3-26514260C242')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('27BC4E8E-D216-485A-BDB3-26514260C242', '78CEE9A6-C132-44F3-AE8B-8D56AF491E5A', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '54F2EBC8-3C56-4E08-B332-2BFA45F2A5BE')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('54F2EBC8-3C56-4E08-B332-2BFA45F2A5BE', 'C25FA6CD-7978-4ABB-B6EE-C861E2AA9FE5', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'AA05975F-1AD9-47AD-BDEB-2EA7D013ABE2')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('AA05975F-1AD9-47AD-BDEB-2EA7D013ABE2', '81EF77ED-2A49-40EE-B98D-F60E937FB64C', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '2610649F-CEF0-4400-B3FB-311B32D89E25')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('2610649F-CEF0-4400-B3FB-311B32D89E25', '3B80E916-C6D0-421A-B001-232DD91F51F3', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'BB25BAEB-A8FA-4174-A341-31A2051D3D71')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('BB25BAEB-A8FA-4174-A341-31A2051D3D71', 'EBFF2D5E-EAF4-41AE-9B31-AA977F47EB3D', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '0AAF9F4B-E303-401B-A73A-32BEB802C8D3')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('0AAF9F4B-E303-401B-A73A-32BEB802C8D3', 'C8AABF91-0D39-43B7-AAD4-8685A0BD62A0', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'C87659BE-9575-47EB-8B3E-3DCC2CC31B04')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('C87659BE-9575-47EB-8B3E-3DCC2CC31B04', '25F25F83-4146-44B7-B95B-70FA11DD818F', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '197D7B1D-97AF-46FB-BDE2-44F234266E75')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('197D7B1D-97AF-46FB-BDE2-44F234266E75', '164C0B25-3D19-4AF4-8554-09D05DB6E9F0', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'F742029E-E1AB-4A0F-A54B-5212E3B28EDA')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('F742029E-E1AB-4A0F-A54B-5212E3B28EDA', '5F813C44-CF7B-47CA-B8BB-6B7628089ABD', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'CB3F728C-C219-49CC-9572-541684106B97')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('CB3F728C-C219-49CC-9572-541684106B97', '164C0B25-3D19-4AF4-8554-09D05DB6E9F0', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '00D4FA36-B521-4464-8761-5864CDA4434B')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('00D4FA36-B521-4464-8761-5864CDA4434B', '14D57347-AFBA-4DE3-BB62-8CBE18A496C9', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '10B5F4B1-2E6F-4FF9-B8E3-674D0AAB26DC')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('10B5F4B1-2E6F-4FF9-B8E3-674D0AAB26DC', 'A0AE94E8-835F-439B-9DBA-0DF95FD380E6', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '95020E5A-EC11-46CC-A219-6EEC65CC7404')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('95020E5A-EC11-46CC-A219-6EEC65CC7404', 'D8AD7F9E-EE2A-4E7D-824A-72D96CC05BD3', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'D8E24733-E18A-470C-9A96-7AA12DBF26D6')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('D8E24733-E18A-470C-9A96-7AA12DBF26D6', '7D932008-CEBE-4390-A4C4-BC51582B89D0', 'B7598BC8-AABC-48C9-9760-4DB82379BD5F');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '76099790-3324-4F63-9569-7E60AC06BE03')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('76099790-3324-4F63-9569-7E60AC06BE03', '5EA55BDF-8062-40C8-B7F3-8E9025FCDF0F', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '62C074B3-D03A-451E-AEB6-7FFB3DC12A83')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('62C074B3-D03A-451E-AEB6-7FFB3DC12A83', '1DB8E7D5-B522-4BE9-9770-102D707AAA6E', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'E42F7605-64D0-4FBD-BB36-8673697BE784')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('E42F7605-64D0-4FBD-BB36-8673697BE784', '81BBB0FD-5839-460A-8942-0BBEA2165038', 'B7598BC8-AABC-48C9-9760-4DB82379BD5F');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'F07DC65C-6853-4293-8B4F-943E77AD1498')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('F07DC65C-6853-4293-8B4F-943E77AD1498', 'EBFF2D5E-EAF4-41AE-9B31-AA977F47EB3D', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '3AAB5346-664B-4DAF-AC20-99F94973A8EA')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('3AAB5346-664B-4DAF-AC20-99F94973A8EA', '13F3F6A3-04E6-4378-A38E-82821222D1A2', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'DBCFC23C-B002-4E53-8F8C-9B94E2811588')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('DBCFC23C-B002-4E53-8F8C-9B94E2811588', 'DE9C381C-B553-4E78-8C85-732EB51AEE07', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '00947380-1573-44FB-80F9-9F072B65257A')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('00947380-1573-44FB-80F9-9F072B65257A', '652D795E-A4E5-49EC-87BE-FA94B0EB0921', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '31ED560C-CD3A-4D4B-A201-A02F6E516ED9')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('31ED560C-CD3A-4D4B-A201-A02F6E516ED9', '5EA55BDF-8062-40C8-B7F3-8E9025FCDF0F', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '5CDBFCA7-CC7A-4938-A20F-A0A68D416A26')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('5CDBFCA7-CC7A-4938-A20F-A0A68D416A26', 'DE9C381C-B553-4E78-8C85-732EB51AEE07', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'F5B994FF-C4AF-4E51-9305-AA059097F497')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('F5B994FF-C4AF-4E51-9305-AA059097F497', 'D8AD7F9E-EE2A-4E7D-824A-72D96CC05BD3', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '118B89B7-7272-4740-9E4E-BDFC638365BE')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('118B89B7-7272-4740-9E4E-BDFC638365BE', 'B11DCFD3-9F76-4B51-8695-F18903376017', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '00683E95-9569-47A1-8EAA-BE01E653D84A')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('00683E95-9569-47A1-8EAA-BE01E653D84A', 'B174F3C3-0719-4E2F-B7AA-83DD701C5076', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '0E0EF2DC-D6CE-417C-BE2A-BFA7A67FFB9E')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('0E0EF2DC-D6CE-417C-BE2A-BFA7A67FFB9E', 'B11DCFD3-9F76-4B51-8695-F18903376017', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '05FC1743-3E35-4EEB-BAED-C0C287418E04')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('05FC1743-3E35-4EEB-BAED-C0C287418E04', 'B11DCFD3-9F76-4B51-8695-F18903376017', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'B83E79E4-E69C-4523-8099-C10FDC760D71')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('B83E79E4-E69C-4523-8099-C10FDC760D71', 'CD609D0A-3B15-4610-AE2E-2F3253B53A14', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '3A2AEC4C-7203-4899-9764-CC90C7101FFD')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('3A2AEC4C-7203-4899-9764-CC90C7101FFD', '652D795E-A4E5-49EC-87BE-FA94B0EB0921', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '6E253404-8531-4FAF-A30B-D8202EFC9BE6')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('6E253404-8531-4FAF-A30B-D8202EFC9BE6', 'B11DCFD3-9F76-4B51-8695-F18903376017', '20649B63-A664-414E-B62A-4390311FA671');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '1A4241C5-CFC7-426C-82EF-DBF3D04B8C1F')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('1A4241C5-CFC7-426C-82EF-DBF3D04B8C1F', 'B11DCFD3-9F76-4B51-8695-F18903376017', 'B7598BC8-AABC-48C9-9760-4DB82379BD5F');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '7942DC1B-CCBC-406A-9D80-DF803D0170CA')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('7942DC1B-CCBC-406A-9D80-DF803D0170CA', '137983A2-983F-4EEA-BCFD-6E051FF7F64C', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'FBA81C76-2D85-4320-84BF-E21B5416DE69')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('FBA81C76-2D85-4320-84BF-E21B5416DE69', '5F813C44-CF7B-47CA-B8BB-6B7628089ABD', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'A897427F-BCD7-4C9A-9D42-E664895FE86D')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('A897427F-BCD7-4C9A-9D42-E664895FE86D', '78CEE9A6-C132-44F3-AE8B-8D56AF491E5A', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = 'E44760D9-DDCA-4C5C-B15C-E6862B296F0F')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('E44760D9-DDCA-4C5C-B15C-E6862B296F0F', '13F3F6A3-04E6-4378-A38E-82821222D1A2', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.papel_tipo_cliente WHERE id = '0F61E6FE-FF3D-4403-96DB-F938A655B4EB')
+        INSERT INTO dbo.papel_tipo_cliente (id, id_papel, id_segmento) VALUES ('0F61E6FE-FF3D-4403-96DB-F938A655B4EB', 'B174F3C3-0719-4E2F-B7AA-83DD701C5076', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+
+    -- Tipos de documento do SISTEMA
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'DFB2843B-2FFA-44F2-ACE3-27A195F39FEF')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('DFB2843B-2FFA-44F2-ACE3-27A195F39FEF', 1, N'ATIVO', NULL, N'CONFISSÃO DIVIDA', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 1, 1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'BC336642-5610-488F-9AD6-2E8BD2A59D37')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('BC336642-5610-488F-9AD6-2E8BD2A59D37', 1, N'INATIVO', N'PROPOSTA_COMERCIAL', N'PROPOSTA COMERCIAL', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = '16F59443-14DE-4E91-988E-4652530393EC')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('16F59443-14DE-4E91-988E-4652530393EC', 1, N'ATIVO', N'CARTA_CESSAO', N'CARTA CESSÃO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 1, 1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = '080D1115-3549-4855-A801-5767B51C7289')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('080D1115-3549-4855-A801-5767B51C7289', 0, N'INATIVO', N'CSVDUPLICATAS', N'CSV DUPLICATAS', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = '88B08B18-1046-4744-8E10-6236E3D68984')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('88B08B18-1046-4744-8E10-6236E3D68984', 1, N'INATIVO', N'CONTRATO', N'CONTRATO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'CCA94CE3-6744-4FC3-B540-6B23F07911EC')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('CCA94CE3-6744-4FC3-B540-6B23F07911EC', 1, N'INATIVO', N'CONSULTORA', N'CONSULTORA', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 0, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'BB344882-61C9-4730-AF9A-7E71B3827131')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('BB344882-61C9-4730-AF9A-7E71B3827131', 1, N'ATIVO', NULL, N'NOTA PROMISSORIA', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 1, 1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'FF30880A-256F-49B3-A025-965D106AFDEF')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('FF30880A-256F-49B3-A025-965D106AFDEF', 1, N'ATIVO', N'TERMO_DE_CESSAO', N'TERMO DE CESSAO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 1, 1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = '2337B534-ECCC-4376-A125-A6243FE2F3BF')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('2337B534-ECCC-4376-A125-A6243FE2F3BF', 1, N'ATIVO', N'DUPLICATA', N'DUPLICATA', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 1, 1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'E14E30B7-CDE6-40C1-9CE1-C41F71DC88F0')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('E14E30B7-CDE6-40C1-9CE1-C41F71DC88F0', 1, N'INATIVO', N'CONTRATO_PRESTACAO_SERVICOS', N'CONTRATO DE PRESTAÇÃO DE SERVIÇOS', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'DDC357D6-EA87-4B30-B640-C4E9A55A1DBE')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('DDC357D6-EA87-4B30-B640-C4E9A55A1DBE', 1, N'INATIVO', N'CONTRATO_SEGURO', N'CONTRATO SEGURO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'F555A993-1DE7-4778-A641-D51B4C9CACE1')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('F555A993-1DE7-4778-A641-D51B4C9CACE1', 1, N'INATIVO', N'ADENDO', N'ADENDO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'C2BF2409-E37F-45B9-9B68-F1E34C8F07A9')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('C2BF2409-E37F-45B9-9B68-F1E34C8F07A9', 1, N'ATIVO', N'ADITIVO', N'ADITIVO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 1, 1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento WHERE id = 'C0331F73-5E03-4832-9AAE-F1E62EFE21DF')
+        INSERT INTO dbo.tipo_documento (id, assina, status, identificacao, nome, id_cliente, ordem, qrcode, validacao_on_line) VALUES ('C0331F73-5E03-4832-9AAE-F1E62EFE21DF', 1, N'INATIVO', NULL, N'TERMO DE CESSÃO', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', NULL, 1, 1);
+
+    -- Papeis permitidos por tipo de documento
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '61280432-EDCA-4ABF-B57B-151A5BF35E00')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('61280432-EDCA-4ABF-B57B-151A5BF35E00', 'C2BF2409-E37F-45B9-9B68-F1E34C8F07A9', '5F813C44-CF7B-47CA-B8BB-6B7628089ABD', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '27A63EFD-FE59-421A-931F-168CA4B2E4E9')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('27A63EFD-FE59-421A-931F-168CA4B2E4E9', 'BC336642-5610-488F-9AD6-2E8BD2A59D37', '25F25F83-4146-44B7-B95B-70FA11DD818F', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = 'F05F75BF-3F28-4F0C-938C-521AB4522832')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('F05F75BF-3F28-4F0C-938C-521AB4522832', '88B08B18-1046-4744-8E10-6236E3D68984', 'A0AE94E8-835F-439B-9DBA-0DF95FD380E6', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '8F98817D-4EF7-4D1A-9C0F-6E28DDED54C6')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('8F98817D-4EF7-4D1A-9C0F-6E28DDED54C6', 'F555A993-1DE7-4778-A641-D51B4C9CACE1', '7D932008-CEBE-4390-A4C4-BC51582B89D0', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '27DEAB98-FF86-47CB-A9B0-72EEC68CB1CA')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('27DEAB98-FF86-47CB-A9B0-72EEC68CB1CA', 'DDC357D6-EA87-4B30-B640-C4E9A55A1DBE', '81BBB0FD-5839-460A-8942-0BBEA2165038', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = 'C81002B7-AFCE-4E38-B99D-8D9ED5F09039')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('C81002B7-AFCE-4E38-B99D-8D9ED5F09039', 'DDC357D6-EA87-4B30-B640-C4E9A55A1DBE', '7D932008-CEBE-4390-A4C4-BC51582B89D0', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = 'ACA62972-39AD-4D81-BB75-8E18B70360DD')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('ACA62972-39AD-4D81-BB75-8E18B70360DD', 'BC336642-5610-488F-9AD6-2E8BD2A59D37', 'A0AE94E8-835F-439B-9DBA-0DF95FD380E6', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '3A111386-1FBC-4A1B-8F74-8ECBADF1B8D1')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('3A111386-1FBC-4A1B-8F74-8ECBADF1B8D1', 'E14E30B7-CDE6-40C1-9CE1-C41F71DC88F0', 'A0AE94E8-835F-439B-9DBA-0DF95FD380E6', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '6A5AED3F-58A8-4523-8607-93506CABB74A')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('6A5AED3F-58A8-4523-8607-93506CABB74A', '2337B534-ECCC-4376-A125-A6243FE2F3BF', '652D795E-A4E5-49EC-87BE-FA94B0EB0921', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '5BB0358A-4290-4748-A0E8-9AE37F70C887')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('5BB0358A-4290-4748-A0E8-9AE37F70C887', 'BB344882-61C9-4730-AF9A-7E71B3827131', '14D57347-AFBA-4DE3-BB62-8CBE18A496C9', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '9DB81190-917B-4E99-84A2-B5CF7623079E')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('9DB81190-917B-4E99-84A2-B5CF7623079E', 'C2BF2409-E37F-45B9-9B68-F1E34C8F07A9', '13F3F6A3-04E6-4378-A38E-82821222D1A2', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = 'E3FD2BE3-8C12-4D47-BB58-B69575852E9A')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('E3FD2BE3-8C12-4D47-BB58-B69575852E9A', '2337B534-ECCC-4376-A125-A6243FE2F3BF', '5EA55BDF-8062-40C8-B7F3-8E9025FCDF0F', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '939A1D52-3935-49E1-943A-C55C49A9DC1F')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('939A1D52-3935-49E1-943A-C55C49A9DC1F', '88B08B18-1046-4744-8E10-6236E3D68984', '3B80E916-C6D0-421A-B001-232DD91F51F3', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = 'C3216F7B-0B55-4B7F-BD05-C7BEEC4D104C')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('C3216F7B-0B55-4B7F-BD05-C7BEEC4D104C', '16F59443-14DE-4E91-988E-4652530393EC', '5EA55BDF-8062-40C8-B7F3-8E9025FCDF0F', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '5152A4DA-2E7C-4F88-812F-D5DD4A79610C')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('5152A4DA-2E7C-4F88-812F-D5DD4A79610C', 'F555A993-1DE7-4778-A641-D51B4C9CACE1', '81BBB0FD-5839-460A-8942-0BBEA2165038', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '34797EDE-4BC2-472A-AE66-D65E93AE7FA0')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('34797EDE-4BC2-472A-AE66-D65E93AE7FA0', 'FF30880A-256F-49B3-A025-965D106AFDEF', 'C8AABF91-0D39-43B7-AAD4-8685A0BD62A0', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '8AB6F5D1-5D1E-417A-9249-E2CBF92E3297')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('8AB6F5D1-5D1E-417A-9249-E2CBF92E3297', 'BC336642-5610-488F-9AD6-2E8BD2A59D37', '137983A2-983F-4EEA-BCFD-6E051FF7F64C', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '476CE8D5-891C-430D-BDB1-E68962E360B7')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('476CE8D5-891C-430D-BDB1-E68962E360B7', 'E14E30B7-CDE6-40C1-9CE1-C41F71DC88F0', '25F25F83-4146-44B7-B95B-70FA11DD818F', NULL, NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '2B260DA4-C7F7-4032-9400-F2F117000992')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('2B260DA4-C7F7-4032-9400-F2F117000992', 'FF30880A-256F-49B3-A025-965D106AFDEF', '5EA55BDF-8062-40C8-B7F3-8E9025FCDF0F', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '7B863969-366C-4CC7-92DD-F432BAD763FE')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('7B863969-366C-4CC7-92DD-F432BAD763FE', 'FF30880A-256F-49B3-A025-965D106AFDEF', '14D57347-AFBA-4DE3-BB62-8CBE18A496C9', 1, 0);
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_papel WHERE id = '94AE41E5-8C81-483B-B76F-FFFB6938D051')
+        INSERT INTO dbo.tipo_documento_papel (id, id_tipo_documento, id_papel, certificate, token) VALUES ('94AE41E5-8C81-483B-B76F-FFFB6938D051', 'E14E30B7-CDE6-40C1-9CE1-C41F71DC88F0', '137983A2-983F-4EEA-BCFD-6E051FF7F64C', NULL, NULL);
+
+    -- Tipos de documento por segmento
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '6263EB2A-C8AE-4914-8B5C-0DFF49D2F672')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('6263EB2A-C8AE-4914-8B5C-0DFF49D2F672', '2337B534-ECCC-4376-A125-A6243FE2F3BF', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '0F7C0A68-8780-4423-BD62-1009AF591A26')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('0F7C0A68-8780-4423-BD62-1009AF591A26', 'E14E30B7-CDE6-40C1-9CE1-C41F71DC88F0', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '57958044-7E3B-46E3-B51D-1A67F9C37D12')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('57958044-7E3B-46E3-B51D-1A67F9C37D12', 'C0331F73-5E03-4832-9AAE-F1E62EFE21DF', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '30A0A9A0-019D-48AE-A6D4-2EB5C5C406BA')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('30A0A9A0-019D-48AE-A6D4-2EB5C5C406BA', 'CCA94CE3-6744-4FC3-B540-6B23F07911EC', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = 'F6E2F635-EA4C-4E93-B274-2F859E844A0A')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('F6E2F635-EA4C-4E93-B274-2F859E844A0A', '080D1115-3549-4855-A801-5767B51C7289', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '949AFF8F-A8EE-4443-B8E1-36AFBD169F3B')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('949AFF8F-A8EE-4443-B8E1-36AFBD169F3B', 'F555A993-1DE7-4778-A641-D51B4C9CACE1', 'B7598BC8-AABC-48C9-9760-4DB82379BD5F');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '33BB57E7-7F98-4EF3-B564-3B5FF2F8A2A6')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('33BB57E7-7F98-4EF3-B564-3B5FF2F8A2A6', 'BB344882-61C9-4730-AF9A-7E71B3827131', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = 'D0269153-6F03-4164-90BA-6A8567CEF45A')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('D0269153-6F03-4164-90BA-6A8567CEF45A', '88B08B18-1046-4744-8E10-6236E3D68984', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '25EAEFE5-D683-405A-A1F7-6C517063C447')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('25EAEFE5-D683-405A-A1F7-6C517063C447', '16F59443-14DE-4E91-988E-4652530393EC', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '07AC00F0-CD03-473E-AA5D-6CFDF74E3E75')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('07AC00F0-CD03-473E-AA5D-6CFDF74E3E75', 'DDC357D6-EA87-4B30-B640-C4E9A55A1DBE', 'B7598BC8-AABC-48C9-9760-4DB82379BD5F');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = 'B6DEA8C3-CA76-4251-9B25-77CC7A74CA82')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('B6DEA8C3-CA76-4251-9B25-77CC7A74CA82', '080D1115-3549-4855-A801-5767B51C7289', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '5048F1CC-B7BF-4DE0-85F1-85E15526C3D8')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('5048F1CC-B7BF-4DE0-85F1-85E15526C3D8', 'FF30880A-256F-49B3-A025-965D106AFDEF', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = 'E5D156EC-1DF1-4930-8AD5-996E0F93D519')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('E5D156EC-1DF1-4930-8AD5-996E0F93D519', 'BC336642-5610-488F-9AD6-2E8BD2A59D37', '3AEEF56C-88B4-4E7C-B94A-4252EC053878');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '9BFD9B8D-2BCC-48F4-9879-9D6B3E9B6FA0')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('9BFD9B8D-2BCC-48F4-9879-9D6B3E9B6FA0', 'FF30880A-256F-49B3-A025-965D106AFDEF', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = 'BC692706-2651-4C42-A0C1-AEDA6A8E4D9B')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('BC692706-2651-4C42-A0C1-AEDA6A8E4D9B', 'C2BF2409-E37F-45B9-9B68-F1E34C8F07A9', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '6AE46BA5-5FDA-4005-B239-BABACBC6CE67')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('6AE46BA5-5FDA-4005-B239-BABACBC6CE67', 'BB344882-61C9-4730-AF9A-7E71B3827131', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '351065D3-B3BE-4A92-9544-BB0DA2E23433')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('351065D3-B3BE-4A92-9544-BB0DA2E23433', '2337B534-ECCC-4376-A125-A6243FE2F3BF', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = 'C74F335A-0EB0-4BD4-A886-DAE70A6B8A99')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('C74F335A-0EB0-4BD4-A886-DAE70A6B8A99', 'C2BF2409-E37F-45B9-9B68-F1E34C8F07A9', 'D73E8106-6FB3-4294-B6C0-D54E8ABC5B97');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = '50C095BF-316C-41F3-B743-EBCFC9CCDC71')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('50C095BF-316C-41F3-B743-EBCFC9CCDC71', '16F59443-14DE-4E91-988E-4652530393EC', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+    IF NOT EXISTS (SELECT 1 FROM dbo.tipo_documento_tipo_cliente WHERE id = 'D38B0328-5AD4-480A-9652-FCB348DD45AA')
+        INSERT INTO dbo.tipo_documento_tipo_cliente (id, id_tipo_documento, id_segmento) VALUES ('D38B0328-5AD4-480A-9652-FCB348DD45AA', 'CCA94CE3-6744-4FC3-B540-6B23F07911EC', '8B6A1AA1-D562-4345-8A1B-C7AE70F15F11');
+
+    -- Definicoes de parametros
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '00585FA9-0759-417A-8107-0341018567ED')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('00585FA9-0759-417A-8107-0341018567ED', N'TERMO_DE_USO_SISTEMA', N'Caminho do termo de uso do sistema no storage', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '37770F58-7D5A-441B-9ADF-0423D45A82C5')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('37770F58-7D5A-441B-9ADF-0423D45A82C5', N'CAMPOS_UPPERCASE', N'Utilizar uppercase na exibição dos dados', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '5931344E-1DD2-41B2-809B-0EDA262328A7')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('5931344E-1DD2-41B2-809B-0EDA262328A7', N'EMAIL_RECUSA_ASSINATURA', N'E-mail para recusa de assinatura', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'F59BE82C-F732-4B31-8B5D-166D4BC5D102')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('F59BE82C-F732-4B31-8B5D-166D4BC5D102', N'CHAVE_ACESSO_API_COMTELE', N'Chave de acesso para API da Comtele', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '500C4D0D-07C5-49D3-9662-17CF6F4A1DFE')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('500C4D0D-07C5-49D3-9662-17CF6F4A1DFE', N'SOMENTE_INCLUIR_USUARIO_NO_CONTRATO', N'Ao incluir a empresa no documento incluir somente o usuário logado como parte', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'C28003C0-8999-4BB6-AAF6-2047FC7161FA')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('C28003C0-8999-4BB6-AAF6-2047FC7161FA', N'MOSTRAR_OBSERVADOR_NO_CONTRATO', N'Mostrar observador na inclusão de documento', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '7E0B33D3-6984-4CBD-90E4-23FFE111C3C8')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('7E0B33D3-6984-4CBD-90E4-23FFE111C3C8', N'NAO_ENVIAR_ARQUIVO_ORIGINAL_NO_EMAIL_CONTRATO_ASSINADOS', N'Não enviar arquivos originais no e-mail de envio automático', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '9229F1D9-1C91-4559-B34F-291EBB0CD2F7')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('9229F1D9-1C91-4559-B34F-291EBB0CD2F7', N'EMAIL_SENDER_TLS_REQUIRED', N'Servidor de e-mail precisa do TLS requerido ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '948FB4F4-FEDC-43D5-BD30-295178780782')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('948FB4F4-FEDC-43D5-BD30-295178780782', N'ENVIAR_ARQUIVOS_NO_EMAIL_CONTRATO_ASSINADOS', N'Enviar os documentos assinados ao finalizar a assinatura', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '6E523373-2055-4D73-A99E-2B0CECDBE83E')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('6E523373-2055-4D73-A99E-2B0CECDBE83E', N'EMAIL_SENDER_SSL_ENABLE', N'Servidor de e-mail precisa do SSL ativado ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '07E47A95-8855-4B7E-810E-2F3432E51A82')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('07E47A95-8855-4B7E-810E-2F3432E51A82', N'AZURE_STORAGE_CONNECTION_STRING', N'Connection string do Azure Blob Storage', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'E7541E7B-6A3F-4528-8884-376AAEB99DDF')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('E7541E7B-6A3F-4528-8884-376AAEB99DDF', N'EMAIL_CHAVE_ACESSO', N'E-mail para envio de chave de acesso para assinatura', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '433A673C-1BC7-4D10-A7B1-3D9720208A79')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('433A673C-1BC7-4D10-A7B1-3D9720208A79', N'TIPO_STORAGE', N'Tipo de Repositorio para os arquivos: LOCAL, AZURE, AWS', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '759BB945-6F3D-4885-B6AF-3F2C93BE13A0')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('759BB945-6F3D-4885-B6AF-3F2C93BE13A0', N'ENVIAR_CONTRATO_PENDENTE_WHATSAPP', N'Enviar mensagem de contrato pendente por WHATSAPP ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '10A62A48-3C59-4577-B492-455C3223491D')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('10A62A48-3C59-4577-B492-455C3223491D', N'EMAIL_SENDER_PROTOCOL', N'Protocolo usado para o servidor de e-mail', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'CA20FE6C-E4E4-4731-BFF4-45C67D96953A')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('CA20FE6C-E4E4-4731-BFF4-45C67D96953A', N'ENVIAR_CONTRATO_ASSINADO_WHATSAPP', N'Enviar mensagem de contrato assinado por WHATSAPP ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'D4D1649B-2527-4B91-B576-47B5A6BBD4DE')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('D4D1649B-2527-4B91-B576-47B5A6BBD4DE', N'EMAIL_NOVO_USUARIO_CLIENTE_JURIDICA', N'E-mail novo cliente pesssoa juridica', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'E7BBA82B-E420-47A5-88B7-506E31987D7B')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('E7BBA82B-E420-47A5-88B7-506E31987D7B', N'EMAIL_SENDER_AUTHENTICATE', N'Servidor de e-mail precisa de autenticação ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'B5DADC5B-F972-4CC3-A8ED-5300AA8F4736')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('B5DADC5B-F972-4CC3-A8ED-5300AA8F4736', N'BLOQUEIA_OBSERVADOR_DOCUMENTOS_PENDENTES', N'Bloqueia o Observador para acompanhar documentos pendentes', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'B47CD329-9FCD-43F4-BC77-57E363D10AC1')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('B47CD329-9FCD-43F4-BC77-57E363D10AC1', N'QUANTIDADE_MAXIMA_PAGINA', N'Quantidade maxima de paginas em 1 documento', N'INTEGER');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '2D0BAFC9-9E4E-4CFF-8AF1-5CCD21F18AD6')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('2D0BAFC9-9E4E-4CFF-8AF1-5CCD21F18AD6', N'WHATSAPP_TOKEN_ASSINATURA', N'WhatsAPP para envio do pin de assinatura', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'BD263D6D-D1AA-410E-BE08-663FF1C6C14D')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('BD263D6D-D1AA-410E-BE08-663FF1C6C14D', N'URL_ACESSO_SITE', N'url do sistema para geração de links nos e-mails', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'AF5D9CBC-C4FD-44E7-9EB1-688A588AAD08')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('AF5D9CBC-C4FD-44E7-9EB1-688A588AAD08', N'AZURE_STORAGE_CONTAINER_NAME', N'Nome do container do Azure Blob Storage', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '581915CF-17CD-4A7C-A4E9-6F740617D3B9')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('581915CF-17CD-4A7C-A4E9-6F740617D3B9', N'EMAIL_SENDER_TLS_ENABLE', N'Servidor de e-mail precisa do TLS ativado ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'DBC9B360-E93B-4B4C-A84C-72C517B4B28C')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('DBC9B360-E93B-4B4C-A84C-72C517B4B28C', N'ENVIAR_EMAIL_OBSERVADOR_SOMENTE_APOS_ASSINATURA', N'Enviar e-mail para o observador somente após as assinaturas', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '9C9A5D95-F547-490C-B968-73FDD9E3850A')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('9C9A5D95-F547-490C-B968-73FDD9E3850A', N'EXIBE_MENSAGEM_VALIDACAO_DE_DOCUMENTO', N'Exibir mensagem de validação do documento', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '6218ECB0-480C-4DBF-9765-777BBFDB4FB1')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('6218ECB0-480C-4DBF-9765-777BBFDB4FB1', N'ASSINAR_VIA_EMAIL', N'Assinar documentos via email ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'A1A0F201-AA2A-44D3-B1C8-780B59B86CE7')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('A1A0F201-AA2A-44D3-B1C8-780B59B86CE7', N'EMAIL_SENDER_PORT', N'Porta do servidor de e-mail', N'INTEGER');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'BDD5E444-3099-4A50-85C9-794A6316528D')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('BDD5E444-3099-4A50-85C9-794A6316528D', N'TERMO_DE_PRIVACIDADE_SISTEMA', N'Caminho do termo de privacidade do sistema no storage', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'C544A8BB-F62D-4C4D-81EE-7C3A892E28D7')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('C544A8BB-F62D-4C4D-81EE-7C3A892E28D7', N'EMAIL_NOVO_USUARIO', N'E-mail para envio de novo Usuário', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '4362C605-352C-46A4-980E-7F4793A80EDC')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('4362C605-352C-46A4-980E-7F4793A80EDC', N'EMAIL_TOKEN_ASSINATURA', N'E-mail para envio do pin de assinatura', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '2C66F7D1-A937-42C5-950B-800FE65D76B4')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('2C66F7D1-A937-42C5-950B-800FE65D76B4', N'DIRETORIO_STORAGE_AZURE', N'Diretorio no container Azure para salvar os arquivos', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '87DD553B-B61F-475D-9112-8100E09D1C75')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('87DD553B-B61F-475D-9112-8100E09D1C75', N'EMAIL_CONTRATO_ASSINADO', N'E-mail para envio de contrato assinado', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'DD306B36-1669-4579-B71E-8914231E62EF')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('DD306B36-1669-4579-B71E-8914231E62EF', N'PRAZO_CANCELAMENTO_CONTRATO_AUTOMATICO', N'Prazo para cancelamento automático caso o documento não esteja vigente', N'INTEGER');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'AFA250C6-1E21-4A5C-8B01-8F3A04088961')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('AFA250C6-1E21-4A5C-8B01-8F3A04088961', N'WHATSAPP_URL_SERVICO', N'Host do servidor de whatsapp', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '4FD11961-924E-4181-A533-902F9664AD2C')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('4FD11961-924E-4181-A533-902F9664AD2C', N'CONSULTA_CONTRATO_MOSTRAR_PARTES', N'Mostrar partes na listagem do contrato', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '44578783-4052-4D86-8CCE-92D5B6C35BE2')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('44578783-4052-4D86-8CCE-92D5B6C35BE2', N'EMAIL_CHAVE_ACESSO_BLOQUEIO', N'E-mail para bloqueio de chave de acesso', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '2AE7543D-E173-4674-8748-93B4C289C89A')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('2AE7543D-E173-4674-8748-93B4C289C89A', N'EMAIL_SENDER_HOST', N'Host do servidor de e-mail', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'F22A6A27-3D57-42AA-9D6E-940A9F1AB964')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('F22A6A27-3D57-42AA-9D6E-940A9F1AB964', N'WHATSAPP_TOKEN_SERVICO', N'Token do servidor de whatsapp', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '96F60809-021E-4750-BE01-9BED536539F1')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('96F60809-021E-4750-BE01-9BED536539F1', N'CHAVE_ACESSO_GEOLOCALIZACAO_IPSTACK', N'Chave de acesso para geolocalização do site ipstack.com', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'E5308412-B57C-4880-A0D5-A19CC56DC694')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('E5308412-B57C-4880-A0D5-A19CC56DC694', N'WHATSAPP_CONTRATO_ASSINADO', N'WhatsAPP para envio de contrato assinado', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '2C48B317-E4EF-4B83-9F75-A4A622AB0480')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('2C48B317-E4EF-4B83-9F75-A4A622AB0480', N'EMAIL_CHAVE_ACESSO_OBSERVADOR', N'E-mail para envio de chave de acesso para obeservação', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'AD8F9C2D-5A27-41E9-AA64-A8555CDF23FE')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('AD8F9C2D-5A27-41E9-AA64-A8555CDF23FE', N'ASSINAR_VIA_SMS', N'Assinar documentos via SMS ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '33FDC96B-F700-4DD6-A3B0-ADE10F082991')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('33FDC96B-F700-4DD6-A3B0-ADE10F082991', N'WHATSAPP_RECUSA_ASSINATURA', N'WhatsApp para recusa de assinatura', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'CDDF3843-DB80-4486-8622-B0A349F9CD6E')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('CDDF3843-DB80-4486-8622-B0A349F9CD6E', N'ENVIAR_CONTRATO_RECUSA_WHATSAPP', N'Enviar mensagem de contrato recusado por WhatsApp ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'A7B3E89D-61AD-40E0-A499-C5057A0A075E')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('A7B3E89D-61AD-40E0-A499-C5057A0A075E', N'ENVIAR_CONTRATO_LIBERADO_OBSERVADOR_WHATSAPP', N'Enviar mensagem de contrato liberado para OBSERVADOR por WhatsApp ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '98776298-4CC8-4CC9-A2E9-D12AA8276B3F')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('98776298-4CC8-4CC9-A2E9-D12AA8276B3F', N'NAO_ENVIAR_ARQUIVO_ORIGINAL_NO_DOWNLOAD_CONTRATO_ASSINADOS', N'Não enviar arquivos originais no download dos arquivos', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '60975606-21CC-4BD5-B9C1-D321102195E1')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('60975606-21CC-4BD5-B9C1-D321102195E1', N'EMAIL_NOVO_USUARIO_CLIENTE_FISICA', N'E-mail novo cliente pesssoa fisica', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '9CD055B0-E027-4D8A-B688-D708CFEFF811')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('9CD055B0-E027-4D8A-B688-D708CFEFF811', N'EMAIL_ESQUECEU_SENHA', N'E-mail para recuperação de senha', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '0C2653F5-4E8D-47F6-96C7-DB8B0D031CCA')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('0C2653F5-4E8D-47F6-96C7-DB8B0D031CCA', N'DIAS_DA_SEMANA_PARA_ENVIO_DE_ALERTA', N'Dias da semana para envio dos e-mails de alertas', N'DIASSEMANA');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'C353CEE3-A3D0-4576-BB0D-E228309DA4FF')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('C353CEE3-A3D0-4576-BB0D-E228309DA4FF', N'EMAIL_SENDER_PASSWORD', N'Senha do servidor de e-mail', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'D4CC5759-E009-4DA3-AC3B-E40597AD6300')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('D4CC5759-E009-4DA3-AC3B-E40597AD6300', N'HORARIOS_PARA_ENVIO_DE_ALERTA', N'Hoarios para envio dos e-mails de alertas', N'HORARIOS');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'C8FDA237-99A0-4CDA-8E79-E9BA106AD5D7')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('C8FDA237-99A0-4CDA-8E79-E9BA106AD5D7', N'ASSINAR_VIA_CERTIFICADO', N'Assinar documentos via certificado digital ? ', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'F19ECDC5-B7C2-483D-A30B-F1929796A717')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('F19ECDC5-B7C2-483D-A30B-F1929796A717', N'EMAIL_CHAVE_ACESSO_PROBLEMA', N'E-mail para problema de acesso com chave', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '97CD1669-1CC5-4FEC-BE1F-F40D350B0B8F')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('97CD1669-1CC5-4FEC-BE1F-F40D350B0B8F', N'WHATSAPP_CHAVE_ACESSO_OBSERVADOR', N'WhatsApp para envio de chave de acesso para obeservação', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '1EA54ED5-1FFC-4FA7-A5DF-F4F3728749B7')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('1EA54ED5-1FFC-4FA7-A5DF-F4F3728749B7', N'PRAZO_ENVIO_EMAILS_AUTOMATICO', N'Prazo para parar o envio automático de e-mail', N'INTEGER');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '835A5FB6-B116-49A1-ABAD-FB703FD1DCE0')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('835A5FB6-B116-49A1-ABAD-FB703FD1DCE0', N'WHATSAPP_CHAVE_ACESSO', N'WhatsAPP para envio de chave de acesso para assinatura', N'TEXT_HTML');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '257B460E-241C-49A8-AAF0-FD27CDFB5906')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('257B460E-241C-49A8-AAF0-FD27CDFB5906', N'TELEFONE_WHATSAPP', N'Número de telefone que enviará o WhatsApp', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'E52D7134-3CB7-451A-A805-FD9E7E7A8334')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('E52D7134-3CB7-451A-A805-FD9E7E7A8334', N'EMAIL_SENDER_USERNAME', N'Usuário do servidor de e-mail', N'TEXT_SIMPLE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = '8D8F5A51-5E4A-4708-B94A-FDE698F98D2F')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('8D8F5A51-5E4A-4708-B94A-FDE698F98D2F', N'ASSINAR_VIA_WHATSAPP', N'Assinar documentos via WhatsApp ?', N'BOOLEAN');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_tipo_atributo WHERE id = 'AC8C341A-8E29-4ECA-89CC-FE2FF1C31C13')
+        INSERT INTO dbo.sistema_tipo_atributo (id, tipo_atributo, descricao, tipo_valor) VALUES ('AC8C341A-8E29-4ECA-89CC-FE2FF1C31C13', N'ENVIAR_CONTRATO_LIBERADO_WHATSAPP', N'Enviar mensagem de contrato liberado por WHATSAPP ?', N'BOOLEAN');
+
+    -- Valores, templates e credenciais do SISTEMA
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '97F5479F-4C9F-482E-AB24-9CB25B711302')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('97F5479F-4C9F-482E-AB24-9CB25B711302', CONVERT(datetime2, '2020-09-14T07:30:11.1730000', 126), N'assina.net/termos/assina.net-termo-uso-sistema.pdf', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '00585FA9-0759-417A-8107-0341018567ED', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '57379C4F-DBAD-4D80-AF16-BBE326CD3C6F')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('57379C4F-DBAD-4D80-AF16-BBE326CD3C6F', CONVERT(datetime2, '2020-07-17T15:17:48.7520000', 126), N'false', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '37770F58-7D5A-441B-9ADF-0423D45A82C5', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '0B13469D-FDE6-48E4-A2EF-E47BC30D1B69')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('0B13469D-FDE6-48E4-A2EF-E47BC30D1B69', CONVERT(datetime2, '2020-11-27T00:15:42.0120000', 126), N'<div align="rigth" style="color:#696969;">' + NCHAR(10) + N'    <div>' + NCHAR(10) + N'        Olá, <span th:text="${parte}"></span><br>' + NCHAR(10) + N'        <br><br>O signatário <span th:text="${usuarioCancelamento}"></span>, recusou a assinatura de <span th:text="${assunto}"></span> pelo seguinte motivo:' + NCHAR(10) + N'	<br><br><span th:text="${motivoCancelamento}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'        <br><br>Um novo e-mail solicitando a assinatura dos documentos será enviado quando os ajustes necessários forem realizados.' + NCHAR(10) + N'' + NCHAR(10) + N'    </div>' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br>Este é um serviço de assinatura com proteção legal e validade jurídica que <span th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br>Atenciosamente' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br> Equipe <strong>Assina</strong><span style="color:#008000;">.net</span>' + NCHAR(10) + N'    <br><br><br><br>' + NCHAR(10) + N'    <div style="width:100%; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(10) + N'    <div align="center">' + NCHAR(10) + N'        <span style="font-size:24px;"><strong>Assina</strong><span style="color:#008000;">.net</span></span><br>' + NCHAR(10) + N'        <span style="color:#696969;"><span style="font-size:11px;">Assina.net Gestão e Assinatura de Documentos</span></span><br>' + NCHAR(10) + N'		<span style="color:#696969;"><span style="font-size:11px;"><span th:text="${dataEnvio}"></span></span></span><p></p>' + NCHAR(10) + N'    </div>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'' + NCHAR(10) + N'', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '5931344E-1DD2-41B2-809B-0EDA262328A7', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '581F0775-DCCF-4A57-9DD0-63AC614AFCE0')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('581F0775-DCCF-4A57-9DD0-63AC614AFCE0', CONVERT(datetime2, '2025-12-16T11:45:57.0080000', 126), N'08c18c2c-e38d-4a9a-a9a6-057000b53ce8', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'F59BE82C-F732-4B31-8B5D-166D4BC5D102', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'C6CE0D5B-689B-44CE-9CE2-4BDAAB887D06')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('C6CE0D5B-689B-44CE-9CE2-4BDAAB887D06', CONVERT(datetime2, '2021-01-26T19:53:25.7210000', 126), N'false', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'C28003C0-8999-4BB6-AAF6-2047FC7161FA', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'AE0B7E13-913E-4A30-A83E-648AD96A3093')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('AE0B7E13-913E-4A30-A83E-648AD96A3093', CONVERT(datetime2, '2020-04-15T14:21:07.2866667', 126), N'false', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '9229F1D9-1C91-4559-B34F-291EBB0CD2F7', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'A3D3692C-35AF-4BD4-85D3-2BD6C10E334D')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('A3D3692C-35AF-4BD4-85D3-2BD6C10E334D', CONVERT(datetime2, '2021-01-26T19:53:12.3970000', 126), N'false', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '948FB4F4-FEDC-43D5-BD30-295178780782', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'C7E3F686-D1F0-49F9-82ED-BE19C707BBCF')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('C7E3F686-D1F0-49F9-82ED-BE19C707BBCF', CONVERT(datetime2, '2020-04-15T14:21:07.3000000', 126), N'false', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '6E523373-2055-4D73-A99E-2B0CECDBE83E', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '75FB2630-0F77-4C5E-A41E-5D1004D97F68')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('75FB2630-0F77-4C5E-A41E-5D1004D97F68', CONVERT(datetime2, '2020-04-15T14:21:07.3766667', 126), N'<!DOCTYPE html>' + NCHAR(13) + N'' + NCHAR(10) + N'<html lang="en">' + NCHAR(13) + N'' + NCHAR(10) + N'<head>' + NCHAR(13) + N'' + NCHAR(10) + N'    <meta charset="UTF-8">' + NCHAR(13) + N'' + NCHAR(10) + N'    <title>Title</title>' + NCHAR(13) + N'' + NCHAR(10) + N'</head>' + NCHAR(13) + N'' + NCHAR(10) + N'<body>' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'<div align="rigth" style="color:#696969;">' + NCHAR(13) + N'' + NCHAR(10) + N'    <div>' + NCHAR(13) + N'' + NCHAR(10) + N'        Olá, <span th:text="${parte}"></span><br>' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br>A <span th:text="${empresa}"></span> solicita sua assinatura para validação dos documentos de <span' + NCHAR(13) + N'' + NCHAR(10) + N'            th:text="${assunto}"></span> através do portal de assinatura Assina.net.' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br>Clique no link abaixo para acessar a plataforma e realizar a assinatura.' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br><br>' + NCHAR(13) + N'' + NCHAR(10) + N'        <div align="center">' + NCHAR(13) + N'' + NCHAR(10) + N'            <div style="width: 329px;background-color: mediumseagreen;color: white;height: 44px;border-radius: 10px;display:table">' + NCHAR(13) + N'' + NCHAR(10) + N'                <a style="display: table-cell;vertical-align: middle;text-decoration: none;color: white;"' + NCHAR(13) + N'' + NCHAR(10) + N'                   th:href="@{${acessoURL}}">Visualize e assine seus documentos aqui!</a></div>' + NCHAR(13) + N'' + NCHAR(10) + N'        </div>' + NCHAR(13) + N'' + NCHAR(10) + N'    </div>' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'    <br><br>Este é um serviço de assinatura com proteção legal e validade jurídica que <span' + NCHAR(13) + N'' + NCHAR(10) + N'        th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'    <br><br>Atenciosamente' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'    <br><br> Equipe <strong>Assina</strong><span style="color:#008000;">.net</span>' + NCHAR(13) + N'' + NCHAR(10) + N'    <br><br><br><br>' + NCHAR(13) + N'' + NCHAR(10) + N'    <div style="width:100%; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(13) + N'' + NCHAR(10) + N'    <div align="center">' + NCHAR(13) + N'' + NCHAR(10) + N'        <span style="font-size:24px;"><strong>Assina</strong><span style="color:#008000;">.net</span></span><br />' + NCHAR(13) + N'' + NCHAR(10) + N'        <span style="color:#696969;"><span style="font-size:11px;">Assina.net Gest&atilde;o e Assinatura de Documentos</span></span><br />' + NCHAR(13) + N'' + NCHAR(10) + N'		<span style="color:#696969;"><span style="font-size:11px;"><span th:text="${dataEnvio}"></span></span></span></p>' + NCHAR(13) + N'' + NCHAR(10) + N'    </div>' + NCHAR(13) + N'' + NCHAR(10) + N'</div>' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'</div>' + NCHAR(13) + N'' + NCHAR(10) + N'</body>' + NCHAR(13) + N'' + NCHAR(10) + N'</html>', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'E7541E7B-6A3F-4528-8884-376AAEB99DDF', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '8FCA5BB1-BE87-421A-AE4F-B4ADF4A73C14')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('8FCA5BB1-BE87-421A-AE4F-B4ADF4A73C14', CONVERT(datetime2, '2023-05-27T04:07:46.5400000', 126), N'AZURE', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '433A673C-1BC7-4D10-A7B1-3D9720208A79', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '0702AD10-F90F-4DB0-89A4-4298D80B7038')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('0702AD10-F90F-4DB0-89A4-4298D80B7038', CONVERT(datetime2, '2020-04-15T14:21:07.3200000', 126), N'smtp', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '10A62A48-3C59-4577-B492-455C3223491D', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'C47EB32E-66E3-4848-84A4-6601B49B1DD6')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('C47EB32E-66E3-4848-84A4-6601B49B1DD6', CONVERT(datetime2, '2026-06-03T10:31:39.1060000', 126), N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	Olá,' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<span th:text="${parte}" style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);"><font size="4">Seja muito bem-vindo à&nbsp;</font></span><span style="color: rgb(105, 105, 105); text-align: -webkit-center; font-weight: bolder;"><font size="4">Assina</font></span><span style="text-align: -webkit-center; color: rgb(0, 128, 0);"><font size="4">.net</font></span><div><div style="text-align: -webkit-center;"><font color="#008000" size="4"><br></font></div><span style="color: rgb(105, 105, 105);"><br></span>' + NCHAR(10) + N'' + NCHAR(10) + N'<div style="text-align: center;"><span style="color: rgb(105, 105, 105); background-color: transparent; font-size: 1rem;">Este é o usuário criado no portal de assinaturas Assina.net.</span></div>' + NCHAR(10) + N'' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<div align="center" style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	<div style="width: 329px; background-color: mediumseagreen; color: white; height: 44px; border-radius: 10px; display: table;">' + NCHAR(10) + N'		<table style="display: inline; vertical-align: middle;">' + NCHAR(10) + N'			<tbody>' + NCHAR(10) + N'				<tr>' + NCHAR(10) + N'					<td>Usuario:</td>' + NCHAR(10) + N'					<td th:text="${usuario}"></td>' + NCHAR(10) + N'				</tr>' + NCHAR(10) + N'				<tr>' + NCHAR(10) + N'					<td>Senha:</td>' + NCHAR(10) + N'					<td th:text="${senha}"></td>' + NCHAR(10) + N'				</tr>' + NCHAR(10) + N'			</tbody>' + NCHAR(10) + N'		</table>' + NCHAR(10) + N'	</div>' + NCHAR(10) + N'	<div align="center" style="color: mediumseagreen;">' + NCHAR(10) + N'		<br>' + NCHAR(10) + N'		<a style="display: table-cell;vertical-align: middle;text-decoration: none;color: mediumseagreen;" href="https://portal.assina.net">Clique aqui para acessar nossa plataforma e comece agora mesmo a usar o que há de melhor em assinaturas digitais!</a>' + NCHAR(10) + N'	</div>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	Este é um serviço de assinatura com proteção legal e validade jurídica que&nbsp;' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<span th:text="${empresa}" style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">Atenciosamente</span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">Equipe&nbsp;</span>' + NCHAR(10) + N'<span style="font-weight: bolder; color: rgb(105, 105, 105);">Assina</span><span style="color: rgb(0, 128, 0);">.net</span>' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<div style="color: rgb(105, 105, 105); width: 1587.22px; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(10) + N'<div align="center" style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	<span style="font-size: 24px;">' + NCHAR(10) + N'		<span style="font-weight: bolder;">Assina</span><span style="color: rgb(0, 128, 0);">.net</span>' + NCHAR(10) + N'	</span>' + NCHAR(10) + N'	<br>' + NCHAR(10) + N'	<span style="font-size: 11px;">Assina.net Gestão e Assinatura de Documentos</span>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'' + NCHAR(10) + N'</div>', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'D4D1649B-2527-4B91-B576-47B5A6BBD4DE', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '5F3C6DA8-4239-4B9C-8A16-1642EC8E55C7')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('5F3C6DA8-4239-4B9C-8A16-1642EC8E55C7', CONVERT(datetime2, '2020-04-15T14:21:07.2533333', 126), N'true', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'E7BBA82B-E420-47A5-88B7-506E31987D7B', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'B47CD329-9FCD-43F4-BC77-57E363D10AC1')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('B47CD329-9FCD-43F4-BC77-57E363D10AC1', CONVERT(datetime2, '2023-03-24T13:55:58.3790000', 126), N'300', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'B47CD329-9FCD-43F4-BC77-57E363D10AC1', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'FE79E3D5-985E-4062-9881-077ED73A50CC')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('FE79E3D5-985E-4062-9881-077ED73A50CC', CONVERT(datetime2, '2021-06-07T11:55:01.2290000', 126), N'<html><head></head><body>' + NCHAR(13) + N'' + NCHAR(10) + N'Olá, <span th:text="${parte}"></span> ' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'Essa é a chave de validação para que você consiga assinar a operação *<span th:text="${assunto}"></span>*, solicitada por *<span th:text="${empresa}"></span>:*' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'*<span th:text="${token}"></span>*' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'Este pin será válido até <span th:text="${tokenValidade}"></span> ' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'Este é um serviço de assinatura com proteção legal e validade jurídica que *<span th:text="${empresa}"></span>* utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'Atenciosamente' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'Equipe Assina.net' + NCHAR(13) + N'' + NCHAR(10) + N'</body>' + NCHAR(13) + N'' + NCHAR(10) + N'</html>', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '2D0BAFC9-9E4E-4CFF-8AF1-5CCD21F18AD6', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '83B1F63E-2A7E-4DEE-BBAA-CBBB6BF4A026')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('83B1F63E-2A7E-4DEE-BBAA-CBBB6BF4A026', CONVERT(datetime2, '2020-09-01T19:57:39.0633333', 126), N'https://portal.assina.net', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'BD263D6D-D1AA-410E-BE08-663FF1C6C14D', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '7992526E-71F1-4F36-8B90-028F4CA85203')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('7992526E-71F1-4F36-8B90-028F4CA85203', CONVERT(datetime2, '2026-06-12T22:05:01.9633333', 126), N'assinanet-container1', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'AF5D9CBC-C4FD-44E7-9EB1-688A588AAD08', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '0D0F165C-70D7-4258-ADA9-4C43242912E7')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('0D0F165C-70D7-4258-ADA9-4C43242912E7', CONVERT(datetime2, '2020-04-15T14:21:07.2700000', 126), N'true', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '581915CF-17CD-4A7C-A4E9-6F740617D3B9', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'A6B82C7F-4B15-4541-AFC1-58124263510E')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('A6B82C7F-4B15-4541-AFC1-58124263510E', CONVERT(datetime2, '2021-01-26T19:53:43.2900000', 126), N'false', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'DBC9B360-E93B-4B4C-A84C-72C517B4B28C', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'C5131995-0356-48C8-9993-3FF5F7BDD54F')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('C5131995-0356-48C8-9993-3FF5F7BDD54F', CONVERT(datetime2, '2020-04-15T14:21:07.2033333', 126), N'587', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'A1A0F201-AA2A-44D3-B1C8-780B59B86CE7', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'D8475A78-1CE9-4191-BB70-BCC8CBC2E0B0')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('D8475A78-1CE9-4191-BB70-BCC8CBC2E0B0', CONVERT(datetime2, '2020-09-14T07:29:58.9560000', 126), N'assina.net/termos/assina.net-termo-privacidade-sistema.pdf', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'BDD5E444-3099-4A50-85C9-794A6316528D', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '132F8F79-9064-46E8-A416-691093E3ACBD')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('132F8F79-9064-46E8-A416-691093E3ACBD', CONVERT(datetime2, '2026-06-03T10:31:59.9580000', 126), N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	Olá,' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<span th:text="${parte}" style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);"><font size="4">Seja muito bem-vindo à&nbsp;</font></span><span style="color: rgb(105, 105, 105); text-align: -webkit-center; font-weight: bolder;"><font size="4">Assina</font></span><span style="text-align: -webkit-center; color: rgb(0, 128, 0);"><font size="4">.net</font></span><div><div style="text-align: -webkit-center;"><font color="#008000" size="4"><br></font></div><span style="color: rgb(105, 105, 105);"><br></span>' + NCHAR(10) + N'' + NCHAR(10) + N'<div style="text-align: center;"><span style="color: rgb(105, 105, 105); background-color: transparent; font-size: 1rem;">Este é o usuário criado no portal de assinaturas Assina.net.</span></div>' + NCHAR(10) + N'' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<div align="center" style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	<div style="width: 329px; background-color: mediumseagreen; color: white; height: 44px; border-radius: 10px; display: table;">' + NCHAR(10) + N'		<table style="display: inline; vertical-align: middle;">' + NCHAR(10) + N'			<tbody>' + NCHAR(10) + N'				<tr>' + NCHAR(10) + N'					<td>Usuario:</td>' + NCHAR(10) + N'					<td th:text="${usuario}"></td>' + NCHAR(10) + N'				</tr>' + NCHAR(10) + N'				<tr>' + NCHAR(10) + N'					<td>Senha:</td>' + NCHAR(10) + N'					<td th:text="${senha}"></td>' + NCHAR(10) + N'				</tr>' + NCHAR(10) + N'			</tbody>' + NCHAR(10) + N'		</table>' + NCHAR(10) + N'	</div>' + NCHAR(10) + N'	<div align="center" style="color: mediumseagreen;">' + NCHAR(10) + N'		<br>' + NCHAR(10) + N'		<a style="display: table-cell;vertical-align: middle;text-decoration: none;color: mediumseagreen;" href="https://portal.assina.net">Clique aqui para acessar nossa plataforma e comece agora mesmo a usar o que há de melhor em assinaturas digitais!</a>' + NCHAR(10) + N'	</div>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	Este é um serviço de assinatura com proteção legal e validade jurídica que&nbsp;' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<span th:text="${empresa}" style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">Atenciosamente</span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">Equipe&nbsp;</span>' + NCHAR(10) + N'<span style="font-weight: bolder; color: rgb(105, 105, 105);">Assina</span><span style="color: rgb(0, 128, 0);">.net</span>' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<div style="color: rgb(105, 105, 105); width: 1587.22px; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(10) + N'<div align="center" style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	<span style="font-size: 24px;">' + NCHAR(10) + N'		<span style="font-weight: bolder;">Assina</span><span style="color: rgb(0, 128, 0);">.net</span>' + NCHAR(10) + N'	</span>' + NCHAR(10) + N'	<br>' + NCHAR(10) + N'	<span style="font-size: 11px;">Assina.net Gestão e Assinatura de Documentos</span>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'</div>', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'C544A8BB-F62D-4C4D-81EE-7C3A892E28D7', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'B394BE1B-715D-4BF7-BA65-540BFC47B88D')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('B394BE1B-715D-4BF7-BA65-540BFC47B88D', CONVERT(datetime2, '2020-10-05T17:43:08.9330000', 126), N'<div align="rigth" style="color:#696969;">' + NCHAR(10) + N'    <div>' + NCHAR(10) + N'        Olá, <span th:text="${parte}"></span><br>' + NCHAR(10) + N'        <br><br>Essa é a chave de validação para que você consiga assinar a operação <span th:text="${assunto}"></span>,' + NCHAR(10) + N'        solicitada por <span th:text="${empresa}"></span>:' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'        <br><br><br>' + NCHAR(10) + N'        <div align="center">' + NCHAR(10) + N'            <div style="width: 329px;background-color: mediumseagreen;color: white;height: 44px;border-radius: 10px;display:table">' + NCHAR(10) + N'                <span style="display: table-cell;vertical-align: middle;text-decoration: none;color: white;" th:text="${token}"></span>' + NCHAR(10) + N'            </div>' + NCHAR(10) + N'	<div>Este pin será válido até <span th:text="${tokenValidade}"></span></div>	' + NCHAR(10) + N'        </div>' + NCHAR(10) + N'' + NCHAR(10) + N'        <br><br>Este é um serviço de assinatura com proteção legal e validade jurídica que <span th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'' + NCHAR(10) + N'        <br><br>Atenciosamente' + NCHAR(10) + N'' + NCHAR(10) + N'        <br><br> Equipe <strong>Assina</strong><span style="color:#008000;">.net</span>' + NCHAR(10) + N'        <br><br><br><br>' + NCHAR(10) + N'        <div style="width:100%; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(10) + N'        <div align="center">' + NCHAR(10) + N'            <span style="font-size:24px;"><strong>Assina</strong><span style="color:#008000;">.net</span></span><br>' + NCHAR(10) + N'            <span style="color:#696969;"><span style="font-size:11px;">Assina.net Gestão e Assinatura de Documentos</span></span><br>' + NCHAR(10) + N'			<span style="color:#696969;"><span style="font-size:11px;"><span th:text="${dataEnvio}"></span></span></span><p></p>' + NCHAR(10) + N'        </div>' + NCHAR(10) + N'    </div>' + NCHAR(10) + N'' + NCHAR(10) + N'</div>' + NCHAR(10) + N'' + NCHAR(10) + N'', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '4362C605-352C-46A4-980E-7F4793A80EDC', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '7BEF3AD2-202C-4567-A603-4DBE15A9DDED')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('7BEF3AD2-202C-4567-A603-4DBE15A9DDED', CONVERT(datetime2, '2023-05-27T04:10:20.6833333', 126), N'assina.net/prod/arquivos/', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '2C66F7D1-A937-42C5-950B-800FE65D76B4', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '06BA7BBF-54F3-4BC9-B4C0-56961E75DB3B')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('06BA7BBF-54F3-4BC9-B4C0-56961E75DB3B', CONVERT(datetime2, '2023-06-07T08:47:11.9360000', 126), N'<div align="left" style="color:#696969;">' + NCHAR(10) + N'    <div>' + NCHAR(10) + N'        Olá, <span th:text="${parte}"></span><br>' + NCHAR(10) + N'        <br><br>Comunicamos que o documento <span th:text="${assunto}"></span> foi assinado por todos os responsáveis e agora está vigente em:<br><br>' + NCHAR(10) + N'	<blockquote style="margin: 0 0 0 40px; border: none; padding: 0px;"><div align="left">' + NCHAR(10) + N'            <div style="width: 329px;background-color: mediumseagreen;color: white;height: 44px;border-radius: 10px;display:table">			' + NCHAR(10) + N'                <a style="text-align: center; display: table-cell; vertical-align: middle; text-decoration: none; color: white;" th:href="@{${siteURL}}">Visualize seus documentos aqui!</a></div>' + NCHAR(10) + N'        </div></blockquote>' + NCHAR(10) + N'        ' + NCHAR(10) + N'    </div>' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br>Atenciosamente,' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br><strong>Assina</strong><span style="color:#008000;">.net</span> e <span th:text="${empresa}"></span>' + NCHAR(10) + N'    ' + NCHAR(10) + N'</div>' + NCHAR(10) + N'' + NCHAR(10) + N'', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '87DD553B-B61F-475D-9112-8100E09D1C75', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'AFA250C6-1E21-4A5C-8B01-8F3A04088961')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('AFA250C6-1E21-4A5C-8B01-8F3A04088961', CONVERT(datetime2, '2022-02-01T00:17:55.9733333', 126), N'https://portalcom.assina.net/send', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'AFA250C6-1E21-4A5C-8B01-8F3A04088961', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '6C463C9A-8094-463D-98AC-677A58478512')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('6C463C9A-8094-463D-98AC-677A58478512', CONVERT(datetime2, '2020-04-15T14:21:07.1766667', 126), N'mail.assina.net', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '2AE7543D-E173-4674-8748-93B4C289C89A', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '6642F76A-83D3-4CB0-9464-C2794911E34D')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('6642F76A-83D3-4CB0-9464-C2794911E34D', CONVERT(datetime2, '2022-04-28T13:15:17.6333333', 126), N'asdflamvas', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'F22A6A27-3D57-42AA-9D6E-940A9F1AB964', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'F1DA67B6-8B98-4E02-8710-C6E7E406A7AE')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('F1DA67B6-8B98-4E02-8710-C6E7E406A7AE', CONVERT(datetime2, '2020-05-25T21:16:15.8733333', 126), N'831a25229740b2bdc1c79b652b9d1c4c', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '96F60809-021E-4750-BE01-9BED536539F1', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'F369F8E1-D08E-4C29-BA17-73A9C0A79961')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('F369F8E1-D08E-4C29-BA17-73A9C0A79961', CONVERT(datetime2, '2023-06-07T08:53:32.6150000', 126), N'Olá, <span th:text="${parte}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'O documento <span th:text="${assunto}"></span> foi assinado por todos os responsáveis e agora está vigente em:<br>' + NCHAR(10) + N'' + NCHAR(10) + N'<span th:text="${siteURL}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'Atenciosamente' + NCHAR(10) + N'' + NCHAR(10) + N'Assina.net e <span th:text="${empresa}"></span>', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'E5308412-B57C-4880-A0D5-A19CC56DC694', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'ED11B138-D254-4772-BEB3-3D687730C7F0')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('ED11B138-D254-4772-BEB3-3D687730C7F0', CONVERT(datetime2, '2021-01-20T11:11:59.3550000', 126), N'<div align="rigth" style="color:#696969;">' + NCHAR(10) + N'    <div>' + NCHAR(10) + N'        Olá, <span th:text="${parte}"></span><br>' + NCHAR(10) + N'        <br><br>A <span th:text="${empresa}"></span> disponibilizou para seu acompanhamento os documentos de <span th:text="${assunto}"></span> através do portal de assinatura Assina.net.' + NCHAR(10) + N'' + NCHAR(10) + N'        <br><br>Clique no link abaixo para acessar a plataforma.' + NCHAR(10) + N'        <br><br><br>' + NCHAR(10) + N'        <div align="center">' + NCHAR(10) + N'            <div style="width: 329px;background-color: mediumseagreen;color: white;height: 44px;border-radius: 10px;display:table">' + NCHAR(10) + N'                <a style="display: table-cell;vertical-align: middle;text-decoration: none;color: white;" th:href="@{${acessoURL}}">Visualize seus documentos aqui!</a></div>' + NCHAR(10) + N'        </div>' + NCHAR(10) + N'    </div>' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br>Este é um serviço de assinatura com proteção legal e validade jurídica que <span th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br>Atenciosamente' + NCHAR(10) + N'' + NCHAR(10) + N'    <br><br> Equipe <strong>Assina</strong><span style="color:#008000;">.net</span>' + NCHAR(10) + N'    <br><br><br><br>' + NCHAR(10) + N'    <div style="width:100%; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(10) + N'    <div align="center">' + NCHAR(10) + N'        <span style="font-size:24px;"><strong>Assina</strong><span style="color:#008000;">.net</span></span><br>' + NCHAR(10) + N'        <span style="color:#696969;"><span style="font-size:11px;">Assina.net Gestão e Assinatura de Documentos</span></span><br>' + NCHAR(10) + N'		<span style="color:#696969;"><span style="font-size:11px;"><span th:text="${dataEnvio}"></span></span></span><p></p>' + NCHAR(10) + N'    </div>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'' + NCHAR(10) + N'', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '2C48B317-E4EF-4B83-9F75-A4A622AB0480', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '892A2FEF-C088-4558-ABC0-CA2295797BF0')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('892A2FEF-C088-4558-ABC0-CA2295797BF0', CONVERT(datetime2, '2021-06-07T11:55:12.0910000', 126), N'Olá, <span th:text="${parte}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'O signatário <span th:text="${usuarioCancelamento}"></span>, recusou a assinatura de <span th:text="${assunto}"></span> pelo seguinte motivo:' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'<span th:text="${motivoCancelamento}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'Um novo e-mail solicitando a assinatura dos documentos será enviado quando os ajustes necessários forem realizados.' + NCHAR(10) + N'' + NCHAR(10) + N'Este é um serviço de assinatura com proteção legal e validade jurídica que <span th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'' + NCHAR(10) + N'Atenciosamente' + NCHAR(10) + N'' + NCHAR(10) + N'Equipe Assina.net', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '33FDC96B-F700-4DD6-A3B0-ADE10F082991', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '5F3F38DE-483A-4C7F-B39B-8A020AA16545')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('5F3F38DE-483A-4C7F-B39B-8A020AA16545', CONVERT(datetime2, '2026-06-03T10:31:16.6860000', 126), N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	Olá,' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<span th:text="${parte}" style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);"><font size="4">Seja muito bem-vindo à&nbsp;</font></span><span style="color: rgb(105, 105, 105); text-align: -webkit-center; font-weight: bolder;"><font size="4">Assina</font></span><span style="text-align: -webkit-center; color: rgb(0, 128, 0);"><font size="4">.net</font></span><div><div style="text-align: -webkit-center;"><font color="#008000" size="4"><br></font></div><span style="color: rgb(105, 105, 105);"><br></span>' + NCHAR(10) + N'' + NCHAR(10) + N'<div style="text-align: center;"><span style="color: rgb(105, 105, 105); background-color: transparent; font-size: 1rem;">Este é o usuário criado no portal de assinaturas Assina.net.</span></div>' + NCHAR(10) + N'' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<div align="center" style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	<div style="width: 329px; background-color: mediumseagreen; color: white; height: 44px; border-radius: 10px; display: table;">' + NCHAR(10) + N'		<table style="display: inline; vertical-align: middle;">' + NCHAR(10) + N'			<tbody>' + NCHAR(10) + N'				<tr>' + NCHAR(10) + N'					<td>Usuario:</td>' + NCHAR(10) + N'					<td th:text="${usuario}"></td>' + NCHAR(10) + N'				</tr>' + NCHAR(10) + N'				<tr>' + NCHAR(10) + N'					<td>Senha:</td>' + NCHAR(10) + N'					<td th:text="${senha}"></td>' + NCHAR(10) + N'				</tr>' + NCHAR(10) + N'			</tbody>' + NCHAR(10) + N'		</table>' + NCHAR(10) + N'	</div>' + NCHAR(10) + N'	<div align="center" style="color: mediumseagreen;">' + NCHAR(10) + N'		<br>' + NCHAR(10) + N'		<a style="display: table-cell;vertical-align: middle;text-decoration: none;color: mediumseagreen;" href="https://portal.assina.net">Clique aqui para acessar nossa plataforma e comece agora mesmo a usar o que há de melhor em assinaturas digitais!</a>' + NCHAR(10) + N'	</div>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	Este é um serviço de assinatura com proteção legal e validade jurídica que&nbsp;' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<span th:text="${empresa}" style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'</span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">Atenciosamente</span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);">Equipe&nbsp;</span>' + NCHAR(10) + N'<span style="font-weight: bolder; color: rgb(105, 105, 105);">Assina</span><span style="color: rgb(0, 128, 0);">.net</span>' + NCHAR(10) + N'<span style="color: rgb(105, 105, 105);"></span>' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<br style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'<div style="color: rgb(105, 105, 105); width: 1587.22px; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(10) + N'<div align="center" style="color: rgb(105, 105, 105);">' + NCHAR(10) + N'	<span style="font-size: 24px;">' + NCHAR(10) + N'		<span style="font-weight: bolder;">Assina</span><span style="color: rgb(0, 128, 0);">.net</span>' + NCHAR(10) + N'	</span>' + NCHAR(10) + N'	<br>' + NCHAR(10) + N'	<span style="font-size: 11px;">Assina.net Gestão e Assinatura de Documentos</span>' + NCHAR(10) + N'</div>' + NCHAR(10) + N'' + NCHAR(10) + N'</div>', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '60975606-21CC-4BD5-B9C1-D321102195E1', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'E7E051EA-BA2A-4C6F-942C-740F89888248')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('E7E051EA-BA2A-4C6F-942C-740F89888248', CONVERT(datetime2, '2020-06-06T18:16:26.0233333', 126), N'<!DOCTYPE html>' + NCHAR(13) + N'' + NCHAR(10) + N'<html lang="en">' + NCHAR(13) + N'' + NCHAR(10) + N'<head>' + NCHAR(13) + N'' + NCHAR(10) + N'    <meta charset="UTF-8">' + NCHAR(13) + N'' + NCHAR(10) + N'    <title>Title</title>' + NCHAR(13) + N'' + NCHAR(10) + N'</head>' + NCHAR(13) + N'' + NCHAR(10) + N'<body>' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'<div align="rigth" style="color:#696969;">' + NCHAR(13) + N'' + NCHAR(10) + N'    <div>' + NCHAR(13) + N'' + NCHAR(10) + N'        Olá, <span th:text="${nome}"></span><br>' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br>Foi solicitado uma alteração de senha para o seu usuário.' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'		<br><br>O link é válido por até 30 minutos.' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br><br>' + NCHAR(13) + N'' + NCHAR(10) + N'        <div align="center">' + NCHAR(13) + N'' + NCHAR(10) + N'            <div style="width: 329px;background-color: mediumseagreen;color: white;height: 44px;border-radius: 10px;display:table">' + NCHAR(13) + N'' + NCHAR(10) + N'                <a style="display: table-cell;vertical-align: middle;text-decoration: none;color: white;"' + NCHAR(13) + N'' + NCHAR(10) + N'                   th:href="@{${acessoURL}}">Clique aqui para alterar sua senha.</a></div>' + NCHAR(13) + N'' + NCHAR(10) + N'        </div>' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br>Este é um serviço de assinatura com proteção legal e validade jurídica para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br>Atenciosamente' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br> Equipe <strong>Assina</strong><span style="color:#008000;">.net</span>' + NCHAR(13) + N'' + NCHAR(10) + N'        <br><br><br><br>' + NCHAR(13) + N'' + NCHAR(10) + N'        <div style="width:100%; border-top: 1px solid mediumseagreen;"></div>' + NCHAR(13) + N'' + NCHAR(10) + N'        <div align="center">' + NCHAR(13) + N'' + NCHAR(10) + N'            <span style="font-size:24px;"><strong>Assina</strong><span style="color:#008000;">.net</span></span><br/>' + NCHAR(13) + N'' + NCHAR(10) + N'            <span style="color:#696969;"><span style="font-size:11px;">Assina.net Gest&atilde;o e Assinatura de Documentos</span></span><br />' + NCHAR(13) + N'' + NCHAR(10) + N'			<span style="color:#696969;"><span style="font-size:11px;"><span th:text="${dataEnvio}"></span></span></span></p>' + NCHAR(13) + N'' + NCHAR(10) + N'        </div>' + NCHAR(13) + N'' + NCHAR(10) + N'    </div>' + NCHAR(13) + N'' + NCHAR(10) + N'' + NCHAR(13) + N'' + NCHAR(10) + N'</div>' + NCHAR(13) + N'' + NCHAR(10) + N'</body>' + NCHAR(13) + N'' + NCHAR(10) + N'</html>', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '9CD055B0-E027-4D8A-B688-D708CFEFF811', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '1D43FA41-F903-4670-BBBA-4B723D973E00')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('1D43FA41-F903-4670-BBBA-4B723D973E00', CONVERT(datetime2, '2020-08-24T16:18:10.8150000', 126), N'[{"item_id":1,"item_text":"Domingo"},{"item_id":2,"item_text":"Segunda"},{"item_id":3,"item_text":"Terça"},{"item_id":4,"item_text":"Quarta"},{"item_id":5,"item_text":"Quinta"},{"item_id":6,"item_text":"Sexta"},{"item_id":7,"item_text":"Sábado"}]', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '0C2653F5-4E8D-47F6-96C7-DB8B0D031CCA', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '9DEE1CD8-DFE0-4298-9362-BC1A1DBE21BC')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('9DEE1CD8-DFE0-4298-9362-BC1A1DBE21BC', CONVERT(datetime2, '2020-04-15T14:21:07.2366667', 126), N'Ass1n@N3t2022', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'C353CEE3-A3D0-4576-BB0D-E228309DA4FF', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = 'A0012956-927B-4A87-86D3-81A30A6AE909')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('A0012956-927B-4A87-86D3-81A30A6AE909', CONVERT(datetime2, '2023-04-11T09:09:48.1830000', 126), N'[{"item_id":"10:00","item_text":"10:00"}]', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'D4CC5759-E009-4DA3-AC3B-E40597AD6300', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '04A02A6C-DF19-4C12-8A4C-9E85F2686DFF')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('04A02A6C-DF19-4C12-8A4C-9E85F2686DFF', CONVERT(datetime2, '2021-06-07T11:54:36.6030000', 126), N'Olá, <span th:text="${parte}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'A <span th:text="${empresa}"></span> disponibilizou para seu acompanhamento os documentos de <span th:text="${assunto}"></span> através do portal de assinatura Assina.net.' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'Clique no link abaixo para acessar a plataforma.' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'<span th:text="${acessoURL}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'Este é um serviço de assinatura com proteção legal e validade jurídica que <span th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'Atenciosamente' + NCHAR(10) + N'' + NCHAR(10) + N'' + NCHAR(10) + N'Equipe Assina.net', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '97CD1669-1CC5-4FEC-BE1F-F40D350B0B8F', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '7B6D29F9-C88E-448A-8ED9-FA44075A5312')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('7B6D29F9-C88E-448A-8ED9-FA44075A5312', CONVERT(datetime2, '2021-06-07T11:54:23.1680000', 126), N'A <span th:text="${empresa}"></span> solicita sua assinatura para validação dos documentos de <span th:text="${assunto}"></span> através do portal de assinatura Assina.net.' + NCHAR(10) + N'' + NCHAR(10) + N'Clique no link abaixo para acessar a plataforma e realizar a assinatura.' + NCHAR(10) + N'<span th:text="${acessoURL}"></span>' + NCHAR(10) + N'' + NCHAR(10) + N'Este é um serviço de assinatura com proteção legal e validade jurídica que <span th:text="${empresa}"></span> utiliza para concretizar seus negócios sem o uso de papel impresso.' + NCHAR(10) + N'' + NCHAR(10) + N'Atenciosamente' + NCHAR(10) + N'' + NCHAR(10) + N'Equipe Assina.net', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '835A5FB6-B116-49A1-ABAD-FB703FD1DCE0', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '7F0FC95F-FE69-4E15-8D36-E86C4D2B75D6')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('7F0FC95F-FE69-4E15-8D36-E86C4D2B75D6', CONVERT(datetime2, '2021-06-07T11:46:34.7080000', 126), N'19998987897', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', '257B460E-241C-49A8-AAF0-FD27CDFB5906', N'ATIVO');
+    IF NOT EXISTS (SELECT 1 FROM dbo.sistema_atributo WHERE id = '3660ADE3-4F88-4144-B48C-A24F1A90C266')
+        INSERT INTO dbo.sistema_atributo (id, data_alteracao, valor_atributo, id_cliente, id_tipo_atributo, status) VALUES ('3660ADE3-4F88-4144-B48C-A24F1A90C266', CONVERT(datetime2, '2020-04-15T14:21:07.2200000', 126), N'portal@assina.net', '57AB12B5-18D5-47A9-9206-E88192AF5F7E', 'E52D7134-3CB7-451A-A805-FD9E7E7A8334', N'ATIVO');
+
+    -- Aceites de termos do ADMIN
+    IF NOT EXISTS (SELECT 1 FROM dbo.usuario_termo WHERE id = 'EA467137-245B-47F4-B756-8CE6143758F0')
+        INSERT INTO dbo.usuario_termo (id, data_aceite, id_sistema_atributo, id_usuario, ip) VALUES ('EA467137-245B-47F4-B756-8CE6143758F0', CONVERT(datetime2, '2020-09-14T13:21:07.2190000', 126), '97F5479F-4C9F-482E-AB24-9CB25B711302', 'B53CD91F-BD02-4031-BCEF-DCAC62A0421E', NULL);
+    IF NOT EXISTS (SELECT 1 FROM dbo.usuario_termo WHERE id = 'B8AA4441-606F-4A75-B65A-B43DC5A7B768')
+        INSERT INTO dbo.usuario_termo (id, data_aceite, id_sistema_atributo, id_usuario, ip) VALUES ('B8AA4441-606F-4A75-B65A-B43DC5A7B768', CONVERT(datetime2, '2020-09-14T13:21:07.2240000', 126), 'D8475A78-1CE9-4191-BB70-BCC8CBC2E0B0', 'B53CD91F-BD02-4031-BCEF-DCAC62A0421E', NULL);
+
+    COMMIT TRANSACTION;
+    PRINT 'Bootstrap do SISTEMA concluido com sucesso.';
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO

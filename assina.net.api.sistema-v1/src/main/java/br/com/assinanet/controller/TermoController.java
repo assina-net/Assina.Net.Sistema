@@ -90,7 +90,7 @@ public class TermoController {
         termoPrivacidadeResonse.setId(termoPrivacidade.getId());
         termoPrivacidadeResonse.setNome(s);
         termoPrivacidadeResonse.setTipoTermo(termoPrivacidade.getTipoAtributo().getTipoAtributo());
-        termoPrivacidadeResonse.setDocumento(termoPrivacidade.getValorAtributo());
+        termoPrivacidadeResonse.setDocumento(usuarioTermoService.carregaDocumentoTermo(termoPrivacidade));
         result.add(termoPrivacidadeResonse);
     }
 

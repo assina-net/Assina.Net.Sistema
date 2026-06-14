@@ -40,7 +40,7 @@ public class StorageLocal implements Storage {
 
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("Erro ao gravar o arquivo local " + storageFilePath, e);
         }
         return "";
     }

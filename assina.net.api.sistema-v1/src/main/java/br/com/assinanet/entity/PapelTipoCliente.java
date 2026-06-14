@@ -33,7 +33,7 @@ public class PapelTipoCliente {
     @NotNull
     private Papel papel;
 
-    @OneToOne(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idSegmento")
     private Segmento segmento; //id da tabela de segmento
 

@@ -199,14 +199,17 @@ public class CelularTask {
                 msg.setFrom(telefoneWhatsAPP);
 
                 if (TipoPessoaEnum.FISICA.equals(parte.getTipoPessoa())) {
-                    GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO);
+                    if (GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO)) {
+                        menssagens.add(msg);
+                    }
                 } else {
                     List<ContratoParte> lstGerarChaveContato = parte.getContatos();
                     for (ContratoParte contato : lstGerarChaveContato) {
-                        GeraChaveAcesso(msg, this.contrato, contato, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO);
+                        if (GeraChaveAcesso(msg, this.contrato, contato, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO)) {
+                            menssagens.add(msg);
+                        }
                     }
                 }
-                menssagens.add(msg);
             }
 
             contratoLogService.salva(new ContratoLog(contrato, null, "Chaves de acesso geradas. Identificador: " +
@@ -239,6 +242,13 @@ public class CelularTask {
             for (SimpleMailMessage msg : menssagens) {
                 ContratoLog contratoLogSucesso = null;
                 ContratoLog contratoLogErro = null;
+                if (msg.getText() == null) {
+                    contratoLogService.salva(new ContratoLog(contrato, null,
+                            "WhatsApp ignorado por estar sem conteúdo. Identificador: "
+                                    + contrato.getIdentificador() + " assunto: " + contrato.getAssunto(),
+                            DataUtil.getCarimboTempo(), true));
+                    continue;
+                }
                 if (!msg.getText().contains("ERRO:")) {
                     try {
                         contratoLogSucesso = new ContratoLog(contrato, null, "Enviando e-email para " + msg.getTo()[0] + ". Identificador: " +
@@ -254,7 +264,7 @@ public class CelularTask {
 
                     } catch (Exception e) {
                         //Salva fila para mandar via jog
-                        EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJson(contratoLogSucesso), GsonUtil.toJson(contratoLogErro),
+                        EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJsonContratoLog(contratoLogSucesso), GsonUtil.toJsonContratoLog(contratoLogErro),
                                 false, TipoEnvioMsgEnum.WHATSAPP, e.getMessage(), contratoLogSucesso.getDataLog());
                         emailFilaRepository.save(emailFila);
 
@@ -262,6 +272,11 @@ public class CelularTask {
                         contratoLogErro.setLog(contratoLogErro.getLog() + e.getMessage());
                         contratoLogService.salva(contratoLogErro);
                     }
+                } else {
+                    contratoLogService.salva(new ContratoLog(contrato, null,
+                            "WhatsApp não enviado: " + msg.getText() + " Identificador: "
+                                    + contrato.getIdentificador() + " assunto: " + contrato.getAssunto(),
+                            DataUtil.getCarimboTempo(), true));
                 }
             }
 
@@ -327,11 +342,15 @@ public class CelularTask {
                         "  disponibilizou para acompanhamento : " + contrato.getAssunto());
 
                 if (TipoPessoaEnum.FISICA.equals(parte.getTipoPessoa())) {
-                    GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO_OBSERVADOR);
+                    if (GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO_OBSERVADOR)) {
+                        menssagens.add(msg);
+                    }
                 } else {
                     List<ContratoParte> lstGerarChaveContato = parte.getContatos();
                     for (ContratoParte contato : lstGerarChaveContato) {
-                        GeraChaveAcesso(msg, this.contrato, contato, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO_OBSERVADOR);
+                        if (GeraChaveAcesso(msg, this.contrato, contato, gerouChave, SistemaTipoAtributoEnum.WHATSAPP_CHAVE_ACESSO_OBSERVADOR)) {
+                            menssagens.add(msg);
+                        }
                     }
                 }
             }
@@ -375,7 +394,7 @@ public class CelularTask {
 
                 } catch (Exception e) {
                     //Salva fila para mandar via jog
-                    EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJson(contratoLogSucesso), GsonUtil.toJson(contratoLogErro),
+                    EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJsonContratoLog(contratoLogSucesso), GsonUtil.toJsonContratoLog(contratoLogErro),
                             false, TipoEnvioMsgEnum.EMAIL, e.getMessage(), contratoLogSucesso.getDataLog());
                     emailFilaRepository.save(emailFila);
 
@@ -451,7 +470,7 @@ public class CelularTask {
         }
     }
 
-    private static void GeraChaveAcesso(SimpleMailMessage msg, Contrato contrato, ContratoParte parte, Map<String, Boolean> gerouChave, SistemaTipoAtributoEnum templateEmail) {
+    private static boolean GeraChaveAcesso(SimpleMailMessage msg, Contrato contrato, ContratoParte parte, Map<String, Boolean> gerouChave, SistemaTipoAtributoEnum templateEmail) {
 
         contratoLogService.salva(new ContratoLog(contrato, null, "Gerando chave de acesso e token  para " +
                 parte.getNomeRazaoSocial(),
@@ -459,7 +478,7 @@ public class CelularTask {
 
 
         if (gerouChave.containsKey(parte.getCpfCnpj())) {
-            return;
+            return false;
         }
 
         boolean alterou = false;
@@ -546,6 +565,7 @@ public class CelularTask {
             msg.setText("ERRO: URL ACESSO SITE não configurada! Favor comunicar o suporte");
         }
 
+        return true;
     }
 
 }

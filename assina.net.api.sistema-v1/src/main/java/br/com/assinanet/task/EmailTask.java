@@ -176,14 +176,14 @@ public class EmailTask {
                 }
 
                 if (TipoPessoaEnum.FISICA.equals(parte.getTipoPessoa())) {
-                    GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO);
+                    msg = GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO);
                     if (msg != null) {
                         this.menssagens.add(msg);
                     }
                 } else {
                     List<ContratoParte> lstGerarChaveContato = parte.getContatos();
                     for (ContratoParte contato : lstGerarChaveContato) {
-                        GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO);
+                        msg = GeraChaveAcesso(msg, this.contrato, contato, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO);
                         if (msg != null) {
                             this.menssagens.add(msg);
                         }
@@ -223,6 +223,13 @@ public class EmailTask {
                 ContratoLog contratoLogSucesso = null;
                 ContratoLog contratoLogErro = null;
 
+                if (msg.getText() == null) {
+                    contratoLogService.salva(new ContratoLog(contrato, null,
+                            "E-mail ignorado por estar sem conteúdo. Identificador: "
+                                    + contrato.getIdentificador() + " assunto: " + contrato.getAssunto(),
+                            DataUtil.getCarimboTempo(), true));
+                    continue;
+                }
                 if (!msg.getText().contains("ERRO:")) {
                     try {
                         contratoLogSucesso = new ContratoLog(contrato, null, "Enviando e-email para " + msg.getTo()[0] + ". Identificador: " +
@@ -238,7 +245,7 @@ public class EmailTask {
 
                     } catch (Exception e) {
                         //Salva fila para mandar via jog
-                        EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJson(contratoLogSucesso), GsonUtil.toJson(contratoLogErro),
+                        EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJsonContratoLog(contratoLogSucesso), GsonUtil.toJsonContratoLog(contratoLogErro),
                                 false, TipoEnvioMsgEnum.EMAIL, e.getMessage(), contratoLogSucesso.getDataLog());
                         emailFilaRepository.save(emailFila);
 
@@ -246,6 +253,11 @@ public class EmailTask {
                         contratoLogErro.setLog(contratoLogErro.getLog() + e.getMessage());
                         contratoLogService.salva(contratoLogErro);
                     }
+                } else {
+                    contratoLogService.salva(new ContratoLog(contrato, null,
+                            "E-mail não enviado: " + msg.getText() + " Identificador: "
+                                    + contrato.getIdentificador() + " assunto: " + contrato.getAssunto(),
+                            DataUtil.getCarimboTempo(), true));
                 }
             }
 
@@ -356,7 +368,7 @@ public class EmailTask {
                         "  disponibilizou para acompanhamento : " + contrato.getAssunto());
 
                 if (TipoPessoaEnum.FISICA.equals(parte.getTipoPessoa())) {
-                    GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO_OBSERVADOR);
+                    msg = GeraChaveAcesso(msg, this.contrato, parte, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO_OBSERVADOR);
                     if (msg != null) {
                         this.menssagens.add(msg);
                     }
@@ -364,7 +376,7 @@ public class EmailTask {
                 } else {
                     List<ContratoParte> lstGerarChaveContato = parte.getContatos();
                     for (ContratoParte contato : lstGerarChaveContato) {
-                        GeraChaveAcesso(msg, this.contrato, contato, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO_OBSERVADOR);
+                        msg = GeraChaveAcesso(msg, this.contrato, contato, gerouChave, SistemaTipoAtributoEnum.EMAIL_CHAVE_ACESSO_OBSERVADOR);
                         if (msg != null) {
                             this.menssagens.add(msg);
                         }
@@ -412,7 +424,7 @@ public class EmailTask {
 
                 } catch (Exception e) {
                     //Salva fila para mandar via jog
-                    EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJson(contratoLogSucesso), GsonUtil.toJson(contratoLogErro),
+                    EmailFila emailFila = new EmailFila(null, DataUtil.getCarimboTempo().getDataCarimboTempo(), GsonUtil.toJson(msg), GsonUtil.toJsonContratoLog(contratoLogSucesso), GsonUtil.toJsonContratoLog(contratoLogErro),
                             false, TipoEnvioMsgEnum.EMAIL, e.getMessage(), contratoLogSucesso.getDataLog());
                     emailFilaRepository.save(emailFila);
 

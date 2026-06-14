@@ -35,7 +35,7 @@ public class TipoDocumentoPapel {
     private TipoDocumento tipoDocumento;
 
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idPapel")
     @NotNull
     private Papel papel;

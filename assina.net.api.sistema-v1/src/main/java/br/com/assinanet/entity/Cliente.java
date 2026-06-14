@@ -35,7 +35,7 @@ public class Cliente {
     private Pessoa pessoa; //id da tabela de usuario
 
 
-    @OneToOne(cascade = CascadeType.ALL , fetch = FetchType.LAZY )
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idSegmento")
     private Segmento segmento; //id da tabela de segmento
 

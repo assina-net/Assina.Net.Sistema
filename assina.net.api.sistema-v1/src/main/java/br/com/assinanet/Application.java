@@ -145,12 +145,14 @@ public class Application extends SpringBootServletInitializer {
         ) {
         return args -> {
 
-            final String cnpjCliente = "00000000000000";
-            final String nomeRazaoSocialCliente = "SISTEMA";
-
             Cliente clienteSistema = clienteService.retornaClienteSistema();
+            Usuario usuarioAdmin = userRepository.findByLogin("ADMIN");
 
+            /*
             if (clienteSistema == null) {
+                final String cnpjCliente = "00000000000000";
+                final String nomeRazaoSocialCliente = "SISTEMA";
+
                 criaClienteInicial(
                           userRepository
                         , pessoaRepository
@@ -185,6 +187,25 @@ public class Application extends SpringBootServletInitializer {
                 initTipoTelefone(tipoTelefoneRepository, clienteSistema, "COMERCIAL", "Residencial");
                 initTipoTelefone(tipoTelefoneRepository, clienteSistema, "RESIDENCIAL", "Correspondencia");
 
+            }
+            */
+
+            if (clienteSistema == null || usuarioAdmin == null) {
+                System.out.println("==============================================================");
+                System.out.println("[BOOTSTRAP_INCOMPLETO] Dados iniciais nao encontrados.");
+                if (clienteSistema == null) {
+                    System.out.println("[BOOTSTRAP_INCOMPLETO] Cliente SISTEMA nao encontrado.");
+                }
+                if (usuarioAdmin == null) {
+                    System.out.println("[BOOTSTRAP_INCOMPLETO] Usuario ADMIN nao encontrado.");
+                }
+                System.out.println("[BOOTSTRAP_INCOMPLETO] Execute o script:");
+                System.out.println("[BOOTSTRAP_INCOMPLETO] scripts/BootstrapSistemaProducao.sql");
+                System.out.println("[BOOTSTRAP_INCOMPLETO] Depois, inicie novamente a aplicacao.");
+                System.out.println("==============================================================");
+                throw new IllegalStateException(
+                        "Bootstrap inicial pendente. Execute scripts/BootstrapSistemaProducao.sql."
+                );
             }
         };
     }

@@ -191,12 +191,12 @@ public class AssinarDocumentoController {
     }
 
     @PostMapping(value = "buscarFiltro")
-    public ResponseEntity<Response<Page<ContratoListaAssinaModel>>> findAll(@RequestBody ContratoFiltroRequest filtro, Pageable pageable) {
-        Response<Page<ContratoListaAssinaModel>> response = new Response<>();
+    public ResponseEntity<Response<PageResponse<ContratoListaAssinaModel>>> findAll(@RequestBody ContratoFiltroRequest filtro, Pageable pageable) {
+        Response<PageResponse<ContratoListaAssinaModel>> response = new Response<>();
 
         if (!CommonsUtil.semValor(filtro.getContrato().getCustodiante())) {
             Page<ContratoListaAssinaModel> contratos = contratoService.findAllAssina(filtro, pageable);
-            response.setData(contratos);
+            response.setData(PageResponse.from(contratos));
         }
         return ResponseEntity.ok(response);
     }

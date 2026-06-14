@@ -5,6 +5,7 @@ import br.com.assinanet.models.ArquivoDownloadModel;
 import br.com.assinanet.models.ContratoListaAssinaModel;
 import br.com.assinanet.request.ContratoCancelamentoRequest;
 import br.com.assinanet.request.ContratoFiltroRequest;
+import br.com.assinanet.response.PageResponse;
 import br.com.assinanet.response.Response;
 import br.com.assinanet.service.ContratoService;
 import br.com.assinanet.util.CommonsUtil;
@@ -39,12 +40,12 @@ public class DocumentoRecusadoController {
     }
 
     @PostMapping(value = "buscarFiltro")
-    public ResponseEntity<Response<Page<ContratoListaAssinaModel>>> findAll(@RequestBody ContratoFiltroRequest filtro, Pageable pageable) {
-        Response<Page<ContratoListaAssinaModel>> response = new Response<>();
+    public ResponseEntity<Response<PageResponse<ContratoListaAssinaModel>>> findAll(@RequestBody ContratoFiltroRequest filtro, Pageable pageable) {
+        Response<PageResponse<ContratoListaAssinaModel>> response = new Response<>();
 
         if (!CommonsUtil.semValor(filtro.getContrato().getCustodiante())) {
             Page<ContratoListaAssinaModel> contratos = contratoService.findAllRecusados(filtro, pageable);
-            response.setData(contratos);
+            response.setData(PageResponse.from(contratos));
         }
         return ResponseEntity.ok(response);
     }
